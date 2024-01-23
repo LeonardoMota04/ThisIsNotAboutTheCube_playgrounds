@@ -32,14 +32,18 @@ class ViewController: UIViewController, ObservableObject {
     var edgeDistance975 : Float = 0.975
     var tolerance25: Float = 0.025
     
+    // onboarding controll
+    var madeOneFingerMovements: Bool = false
+    var madeTwoFingerMovements: Bool = false
+    var readOnBoardingText: Bool = false
+    var cameraIsMoving: Bool = false
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         setupScene()
         createRubiksCube()
         setupFloatingAnimation()
-        setupCamera()
         setupCurrentPhase()
-        //setupLights()
         setupGestureRecognizers()
     }
     
@@ -47,11 +51,13 @@ class ViewController: UIViewController, ObservableObject {
     func setupCurrentPhase() {
         let currentPhase = cubePhases[currentPhaseIndex]
         //sceneView.backgroundColor = currentPhase.backgroundColor
-        
         switch currentPhase.phaseNumber {
             case 0:
-                print("fase 0")
+                print("OnBoarding")
+                setupCamera()
                 setupLights()
+                setupOnboarding()
+                
             case 1:
                 print("fase 1")
                 self.rubiksCube.changeCubeTexture()
@@ -67,16 +73,20 @@ class ViewController: UIViewController, ObservableObject {
                 print("fase fora")
             
         }
-       
-            
-        // titulo
+    }
+    
+    func setupOnboarding() {
+        if numOfMovements == 3 {
+            self.madeOneFingerMovements = true
+            print("fez os movimentos")
+            //numOfMovements = 0
+        }
     }
     
     func moveToNextPhase() {
         currentPhaseIndex += 1
         if currentPhaseIndex < cubePhases.count {
             setupCurrentPhase()
-            // setuplights for phase tal
         } else {
             // ACABOU
             print("cabou")
@@ -149,37 +159,50 @@ class ViewController: UIViewController, ObservableObject {
             SCNTransaction.animationDuration = 8.0
             self.cameraNode.pivot = SCNMatrix4MakeTranslation(0, 0, -10)
             self.cameraNode.eulerAngles = SCNVector3(-0.5, 0.75, 0)
+            self.cameraIsMoving = true
+            SCNTransaction.completionBlock = {
+                self.cameraIsMoving = false
+            }
             SCNTransaction.commit()
 
             // SECOND ANIMATION
-            DispatchQueue.main.asyncAfter(deadline: .now() + 8.0) {
-                SCNTransaction.begin()
-                SCNTransaction.animationDuration = 4.0
-                // esquerda
-                SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-                self.cameraNode.position.x += 5.0 // ajuste conforme necessário
-                self.cameraNode.eulerAngles = SCNVector3(0, 0, 0)
-                SCNTransaction.commit()
-
-                // direita
-                DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+           // DispatchQueue.main.asyncAfter(deadline: .now() + 8.0) {
+                // check if user passed first movements
+        if self.madeOneFingerMovements {//}&& self.madeTwoFingerMovements { // JA DEU OS PRIMEIROS MOVIMENTOS
+                    // esquerda
                     SCNTransaction.begin()
                     SCNTransaction.animationDuration = 4.0
                     SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-                    self.cameraNode.position.x -= 10.0
-                    //self.cameraNode.eulerAngles = SCNVector3(-0.5, 0.75, 0)
+                    self.cameraNode.position.x += 5.0
+                    self.cameraNode.eulerAngles = SCNVector3(0, 0, 0)
                     SCNTransaction.commit()
-                    
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-                        SCNTransaction.begin()
-                        SCNTransaction.animationDuration = 4.0
-                        SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-                        self.cameraNode.position.x += 5.0
-                        //self.cameraNode.eulerAngles = SCNVector3(-0.5, 0.75, 0)
-                        SCNTransaction.commit()
-                    }
+            
+                    // direita
+                    //DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                        // check if user read text
+                        if self.readOnBoardingText {
+                            SCNTransaction.begin()
+                            SCNTransaction.animationDuration = 4.0
+                            SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                            self.cameraNode.position.x -= 10.0
+                            //self.cameraNode.eulerAngles = SCNVector3(-0.5, 0.75, 0)
+                            SCNTransaction.commit()
+                            
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                                SCNTransaction.begin()
+                                SCNTransaction.animationDuration = 4.0
+                                SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                                self.cameraNode.position.x += 5.0
+                                //self.cameraNode.eulerAngles = SCNVector3(-0.5, 0.75, 0)
+                                SCNTransaction.commit()
+                            }
+                        }
+                    //}
                 }
-            }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 21.0) {
+                    self.cameraIsMoving = false
+                }
+            //}
     }
 
 
@@ -226,7 +249,7 @@ class ViewController: UIViewController, ObservableObject {
         let hitResults = sceneView.hitTest(location, options: nil)
         
         // MARK: - 2 FINGERS: CAMERA
-        if recognizer.numberOfTouches == 2 {
+        if recognizer.numberOfTouches == 2 && !cameraIsMoving {
             // ROTATIONS
             let old_Rotation = cameraNode.rotation as SCNQuaternion
             var new_Rotation = GLKQuaternionMakeWithAngleAndAxis(old_Rotation.w, old_Rotation.x, old_Rotation.y, old_Rotation.z)
@@ -248,6 +271,7 @@ class ViewController: UIViewController, ObservableObject {
             let axis = GLKQuaternionAxis(new_Rotation)
             let angle = GLKQuaternionAngle(new_Rotation)
             
+            self.madeTwoFingerMovements = true
             cameraNode.rotation = SCNVector4Make(axis.x, axis.y, axis.z, angle)
         }
 
@@ -257,7 +281,9 @@ class ViewController: UIViewController, ObservableObject {
         if recognizer.numberOfTouches == 1
             && hitResults.count > 0
             && recognizer.state == UIGestureRecognizer.State.began
-            && beganPanNode == nil {
+            && beganPanNode == nil 
+            // animation conditionals
+            && !cameraIsMoving {
 
             beganPanHitResult = hitResults[0]
             beganPanNode = hitResults[0].node
