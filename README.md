@@ -1,0 +1,2 @@
+# ThisIsNotAboutTheCube_playgrounds
+Swift Student Challenge 2024 playgrounds submission Repository
