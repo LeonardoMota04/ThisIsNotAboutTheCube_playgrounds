@@ -36,10 +36,11 @@ struct SwiftUIView: View {
     var body: some View {
         
         ZStack(alignment: .top) {
-            Color.black.ignoresSafeArea()
-            
+            //Color.purple.ignoresSafeArea()
+
             // CUBE
             CubeView(viewController: vc)
+                //.background(cubeBackgroundColor)
                 .background(
                     Image(uiImage: UIImage(named: "fundo0")!)
                         .resizable()
@@ -74,9 +75,9 @@ struct SwiftUIView: View {
                 
                 Spacer()
                 
-                LinesView()
-                    .offset(y: lineOffset)
-                    .opacity(0)
+//                LinesView()
+//                    .offset(y: lineOffset)
+//                    .opacity(0)
                 
                 /// Action Label
                 Text(actionLabel)
@@ -84,13 +85,13 @@ struct SwiftUIView: View {
                     .foregroundStyle(.black)
                     .opacity(textOpacity)
             }
-
-            
         }
+        
+        // MARK: - ON APPEAR
         .onAppear {
-            cubeBackgroundColor = vc.cubePhases.isEmpty ? .gray : vc.cubePhases[vc.currentPhaseIndex].backgroundColor
-            titleLabel = vc.cubePhases.isEmpty ? "empty" : vc.cubePhases[vc.currentPhaseIndex].title
-            actionLabel = vc.cubePhases.isEmpty ? "empty" : vc.cubePhases[vc.currentPhaseIndex].actionLabel
+            cubeBackgroundColor = vc.cubePhases.isEmpty ? .gray : vc.currentPhase.backgroundColor
+            titleLabel = vc.cubePhases.isEmpty ? "empty" : vc.currentPhase.title
+            actionLabel = vc.cubePhases.isEmpty ? "empty" : vc.currentPhase.actionLabel
             
             DispatchQueue.main.asyncAfter(deadline: .now() + 8.0) {
                 withAnimation(.smooth(duration: 2.0)) {
@@ -100,33 +101,32 @@ struct SwiftUIView: View {
             }
         }
         
+        // MARK: - ON CHANGE OF
         .onChange(of: vc.currentPhaseIndex) { _ in
-            
-            
             
             withAnimation(.smooth){
                 lineOffset -= 100
             }
             
             
-            withAnimation(.easeIn(duration: 1.0)) {
-                cubeBackgroundColor = vc.cubePhases.isEmpty ? Color.gray : vc.cubePhases[vc.currentPhaseIndex].backgroundColor
+            withAnimation(.snappy(duration: 1.0)) {
+                cubeBackgroundColor = vc.cubePhases.isEmpty ? Color.gray : vc.currentPhase.backgroundColor
                 
             }
             
-            withAnimation(.easeInOut(duration: 1.0)) {
-                textOpacity = 0.0
-            }
+//            withAnimation(.easeInOut(duration: 1.0)) {
+//                textOpacity = 0.0
+//            }
             
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            //DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
                 withAnimation(.smooth(duration: 2.0)) {
-                    titleLabel = vc.cubePhases.isEmpty ? "empty" : vc.cubePhases[vc.currentPhaseIndex].title
+                    titleLabel = vc.cubePhases.isEmpty ? "empty" : vc.currentPhase.title
                     
-                    actionLabel = vc.cubePhases.isEmpty ? "empty" : vc.cubePhases[vc.currentPhaseIndex].actionLabel
+                    actionLabel = vc.cubePhases.isEmpty ? "empty" : vc.currentPhase.actionLabel
                     
-                    textOpacity = 1.0
+                    //textOpacity = 1.0
                 }
-            }
+            //}
             
         }
     }
@@ -139,57 +139,57 @@ struct SwiftUIView: View {
 }
 
 
-struct ContentView: View {
-    @State private var showNextView = false
-    
-    var body: some View {
-        VStack {
-            Spacer()
-            
-            if showNextView {
-                NextView()
-                    .transition(.slide)
-            } else {
-                LinesView()
-                    .transition(.slide)
-            }
-            
-            Spacer()
-            
-            Button("Next") {
-                withAnimation {
-                    showNextView.toggle()
-                }
-            }
-        }
-        .padding()
-    }
-}
-
-struct LinesView: View {
-    var body: some View {
-        VStack(spacing: 20) {
-            LineView()
-            LineView()
-            LineView()
-        }
-    }
-}
-
-struct LineView: View {
-    var body: some View {
-        Rectangle()
-            .frame(height: 5)
-            .foregroundColor(.white)
-    }
-}
-
-struct NextView: View {
-    var body: some View {
-        Text("Next View")
-            .font(.title)
-            .foregroundColor(.green)
-    }
-}
+//struct ContentView: View {
+//    @State private var showNextView = false
+//    
+//    var body: some View {
+//        VStack {
+//            Spacer()
+//            
+//            if showNextView {
+//                NextView()
+//                    .transition(.slide)
+//            } else {
+//                LinesView()
+//                    .transition(.slide)
+//            }
+//            
+//            Spacer()
+//            
+//            Button("Next") {
+//                withAnimation {
+//                    showNextView.toggle()
+//                }
+//            }
+//        }
+//        .padding()
+//    }
+//}
+//
+//struct LinesView: View {
+//    var body: some View {
+//        VStack(spacing: 20) {
+//            LineView()
+//            LineView()
+//            LineView()
+//        }
+//    }
+//}
+//
+//struct LineView: View {
+//    var body: some View {
+//        Rectangle()
+//            .frame(height: 5)
+//            .foregroundColor(.white)
+//    }
+//}
+//
+//struct NextView: View {
+//    var body: some View {
+//        Text("Next View")
+//            .font(.title)
+//            .foregroundColor(.green)
+//    }
+//}
 
 
