@@ -44,6 +44,7 @@ class ViewController: UIViewController, ObservableObject {
     var tolerance25: Float = 0.025
     
     // onboarding controll
+    //var firstEverTouch: Bool = false
     var madeOneFingerMovements: Bool = false
     var madeTwoFingerMovements: Bool = false
     var movementsToPassTutorial: Int = 3
@@ -61,13 +62,19 @@ class ViewController: UIViewController, ObservableObject {
         setupFloatingAnimation()
         setupCurrentPhase()
         setupGestureRecognizers()
+        
     }
     
+    
+    func addNode(node: SCNNode) {
+        self.rootNode.addChildNode(node)
+    }
     // MARK: - PHASES ===========================================================
     func setupCurrentPhase() {
         switch currentPhaseIndex {
             case 0:
                 print("OnBoarding")
+
                 setupCamera()
                 //setupLights(camera: cameraNode, root: rootNode)
                 audioManager.startBackgroundMusic()
@@ -93,6 +100,7 @@ class ViewController: UIViewController, ObservableObject {
                 print("fase 8")
             case 9:
                 print("fase 9")
+            self.currentPhaseIndex = 0
             
             default:
                 print("fase fora")
@@ -148,25 +156,30 @@ class ViewController: UIViewController, ObservableObject {
         /// phases
         cubePhases = [
             /// Onboarding
-            PhaseModel(phaseNumber: 0, title: "", actionLabel: "", backgroundColor: .black, movementsRequired: 5),
+            PhaseModel(phaseNumber: 0, title: "", subtitle: "", actionLabel: "", backgroundColor: .black, movementsRequired: 5),
             /// 1
-            PhaseModel(phaseNumber: 1, title: "FASE 1 TÍTULO AQUI", actionLabel: "ACAO1", backgroundColor: .blue, movementsRequired: 1),
+            PhaseModel(phaseNumber: 1, 
+                       title: "Por onde começar?",
+                       subtitle: "Ao ter o primeiro contato com as dificuldades da vida, nos sentimos despreparados e não sabemos sequer por onde começar...", 
+                       actionLabel: "Respeite o seu tempo - um passo de cada vez.",
+                       backgroundColor: .blue,
+                       movementsRequired: 1),
             /// 2
-            PhaseModel(phaseNumber: 2, title: "FASE 2 TÍTULO AQUI", actionLabel: "ACAO2", backgroundColor: .red, movementsRequired: 5),
+            PhaseModel(phaseNumber: 2, title: "FASE 2 TÍTULO AQUI", subtitle: "", actionLabel: "ACAO2", backgroundColor: .red, movementsRequired: 5),
             /// 3
-            PhaseModel(phaseNumber: 3, title: "FASE 3 TÍTULO AQUI", actionLabel: "ACAO3", backgroundColor: .green, movementsRequired: 5),
+            PhaseModel(phaseNumber: 3, title: "FASE 3 TÍTULO AQUI", subtitle: "", actionLabel: "ACAO3", backgroundColor: .green, movementsRequired: 5),
             /// 4
-            PhaseModel(phaseNumber: 3, title: "FASE 4 TÍTULO AQUI", actionLabel: "ACAO4", backgroundColor: .purple, movementsRequired: 5),
+            PhaseModel(phaseNumber: 3, title: "FASE 4 TÍTULO AQUI", subtitle: "", actionLabel: "ACAO4", backgroundColor: .purple, movementsRequired: 5),
             /// 5
-            PhaseModel(phaseNumber: 3, title: "FASE 5 TÍTULO AQUI", actionLabel: "ACAO5", backgroundColor: .red, movementsRequired: 5),
+            PhaseModel(phaseNumber: 3, title: "FASE 5 TÍTULO AQUI", subtitle: "", actionLabel: "ACAO5", backgroundColor: .red, movementsRequired: 5),
             /// 6
-            PhaseModel(phaseNumber: 3, title: "FASE 6 TÍTULO AQUI", actionLabel: "ACAO6", backgroundColor: .white, movementsRequired: 5),
+            PhaseModel(phaseNumber: 3, title: "FASE 6 TÍTULO AQUI", subtitle: "", actionLabel: "ACAO6", backgroundColor: .white, movementsRequired: 5),
             /// 7
-            PhaseModel(phaseNumber: 3, title: "FASE 7 TÍTULO AQUI", actionLabel: "ACAO7", backgroundColor: .red, movementsRequired: 5),
+            PhaseModel(phaseNumber: 3, title: "FASE 7 TÍTULO AQUI", subtitle: "", actionLabel: "ACAO7", backgroundColor: .red, movementsRequired: 5),
             /// 8
-            PhaseModel(phaseNumber: 3, title: "FASE 8 TÍTULO AQUI", actionLabel: "ACAO8", backgroundColor: .blue, movementsRequired: 5),
+            PhaseModel(phaseNumber: 3, title: "FASE 8 TÍTULO AQUI", subtitle: "", actionLabel: "ACAO8", backgroundColor: .blue, movementsRequired: 5),
             /// 9
-            PhaseModel(phaseNumber: 3, title: "FASE 9 TÍTULO AQUI", actionLabel: "ACAO9", backgroundColor: .purple, movementsRequired: 5),
+            PhaseModel(phaseNumber: 3, title: "FASE 9 TÍTULO AQUI", subtitle: "", actionLabel: "ACAO9", backgroundColor: .purple, movementsRequired: 5),
         ]
 
         //setupCurrentPhase()
@@ -201,13 +214,16 @@ class ViewController: UIViewController, ObservableObject {
         cameraNode.pivot = SCNMatrix4MakeTranslation(0, 0, -80) // CAMERA INITIAL POSITION
         cameraNode.eulerAngles = SCNVector3(0, 0, 0)
 
-        startFirstAnimation()
+        //if firstEverTouch {
+            startFirstAnimation()
+        //}
     }
     
     func startFirstAnimation () {
         // FIRST ANIMATION (ZOOM IN)
             SCNTransaction.begin()
             SCNTransaction.animationDuration = 1
+        
             self.cameraNode.pivot = SCNMatrix4MakeTranslation(0, 0, -10)
             self.cameraNode.eulerAngles = SCNVector3(-0.5, 0.75, 0)
             self.cameraIsMoving = true
@@ -221,7 +237,7 @@ class ViewController: UIViewController, ObservableObject {
     func startSecondAnimation(initialPosition: SCNVector3) {
         // volta pro normal
         SCNTransaction.begin()
-        SCNTransaction.animationDuration = 1.0
+        SCNTransaction.animationDuration = 1
         SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeIn)
     
         self.cameraNode.position = initialPosition
@@ -537,7 +553,7 @@ class ViewController: UIViewController, ObservableObject {
             print("nodes para rotacionar")
             rootNode.addChildNode(container)
             for nodeToRotate in nodesToRotate {
-                //print(nodeToRotate.position)
+                print(nodeToRotate.position)
                 container.addChildNode(nodeToRotate)
             }
             
@@ -564,7 +580,7 @@ class ViewController: UIViewController, ObservableObject {
                 self.numOfMovements += 1
                 //self.rubiksCube.changeCubeTexture()
                 self.HandleReactionsForEachMovementInPhase()
-                print("\n\nLADO NORTE RESOLVIDO: \(self.rubiksCube.isNorthWallSolved())")
+                //print("\n\nLADO NORTE RESOLVIDO: \(self.rubiksCube.isNorthWallSolved())")
                 print("ROTACAO ANGULO: \(rotationAngle) / ROTACAOaxis: \(self.rotationAxis!)")
                 print("lado: \(side!)")
                 print("plano: \(plane)")
@@ -576,7 +592,35 @@ class ViewController: UIViewController, ObservableObject {
             }
         }
     }
-  
+    
+    
+
+    
+    func rotateNovo() {
+        // Obtenha um contêiner com nodes na mesma camada
+        let containerNovo = self.rubiksCube.getRandomAdjacentContainer(rotationAxis: self.rotationAxis, plane: "Z")
+        rootNode.addChildNode(containerNovo)
+        print(containerNovo.childNodes.count)
+        // Crie a ação de rotação
+        let rotationAngle = CGFloat(1) * .pi/2
+        let rotation_Action = SCNAction.rotate(by: rotationAngle, around: self.rotationAxis, duration: 0.2)
+
+        // Execute a ação no contêiner
+        containerNovo.runAction(rotation_Action) {
+            // Reposicione os nodes no cubo após a rotação
+            for node: SCNNode in containerNovo.childNodes {
+                let transform = node.parent!.convertTransform(node.transform, to: self.rubiksCube)
+                node.removeFromParentNode()
+                node.transform = transform
+                self.rubiksCube.addChildNode(node)
+            }
+
+            // Libere o bloqueio da animação
+            self.animationLock = false
+            self.beganPanNode = nil
+        }
+    }
+
     private func selectedCubeSide(hitResult: SCNHitTestResult, edgeDistanceFromOrigin:Float) -> CubeSide {
         
         // X

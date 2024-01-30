@@ -12,13 +12,15 @@ import SceneKit
 struct PhaseModel {
     var phaseNumber: Int
     var title: String
+    var subtitle: String
     var actionLabel: String
     var backgroundColor: Color
     var movementsRequired: Int
     
-    init(phaseNumber: Int, title: String, actionLabel: String, backgroundColor: Color, movementsRequired: Int) {
+    init(phaseNumber: Int, title: String, subtitle: String, actionLabel: String, backgroundColor: Color, movementsRequired: Int) {
         self.phaseNumber = phaseNumber
         self.title = title
+        self.subtitle = subtitle
         self.actionLabel = actionLabel
         self.backgroundColor = backgroundColor
         self.movementsRequired = movementsRequired

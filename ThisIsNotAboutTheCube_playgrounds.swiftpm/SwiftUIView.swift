@@ -27,6 +27,7 @@ struct SwiftUIView: View {
     let screen = UIScreen()
     @State private var cubeBackgroundColor: Color = .clear
     @State private var titleLabel: String = ""
+    @State private var subtitleLabel: String = ""
     @State private var actionLabel: String = ""
     @State private var textOpacity: Double = 1.0
     @State private var lineOffset: CGFloat = 0.0
@@ -36,30 +37,28 @@ struct SwiftUIView: View {
     var body: some View {
         
         ZStack(alignment: .top) {
-            //Color.purple.ignoresSafeArea()
+            cubeBackgroundColor.ignoresSafeArea()
 
             // CUBE
             CubeView(viewController: vc)
                 //.background(cubeBackgroundColor)
                 .background(
-                    Image(uiImage: UIImage(named: "fundo0")!)
-                        .resizable()
-                        .scaledToFill()
+                    Image(uiImage: UIImage(named: "linhasfundo")!)
+                        //.resizable()
+                        //.scaledToFit()
                         .frame(width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.width)
                         .scaleEffect(imageScale) // initial scale
                         
                         .onAppear {
                             //DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                                withAnimation(.linear(duration: 8.0)){
-                                    imageScale = 5.0
+                            withAnimation(.linear(duration: 9.0)){
+                                imageScale = 8.0
                     
                                 }
                             //}
-                            
                         }
                 )
             
-
             // INFORMATION
             VStack {
                 /// Title
@@ -67,18 +66,27 @@ struct SwiftUIView: View {
                     .font(.system(size: 100))
                     .foregroundStyle(.black)
                     .opacity(textOpacity)
+                
+                Button("embaralhar") {
+                    vc.rotateNovo()
+                }
                
-                Text("\(vc.numOfMovements)")
+//                Button{
+//                    vc.firstEverTouch = true
+//
+//                } label: {
+//                    Text("Começar")
+//                        .font(.system(size: 100))
+//                        .foregroundStyle(.white)
+//                }
+                
+                Text(subtitleLabel)
                     .font(.system(size: 50))
                     .foregroundStyle(.black)
                     .opacity(textOpacity)
                 
                 Spacer()
-                
-//                LinesView()
-//                    .offset(y: lineOffset)
-//                    .opacity(0)
-                
+
                 /// Action Label
                 Text(actionLabel)
                     .font(.system(size: 50))
@@ -91,6 +99,7 @@ struct SwiftUIView: View {
         .onAppear {
             cubeBackgroundColor = vc.cubePhases.isEmpty ? .gray : vc.currentPhase.backgroundColor
             titleLabel = vc.cubePhases.isEmpty ? "empty" : vc.currentPhase.title
+            subtitleLabel = vc.cubePhases.isEmpty ? "empty" : vc.currentPhase.subtitle
             actionLabel = vc.cubePhases.isEmpty ? "empty" : vc.currentPhase.actionLabel
             
             DispatchQueue.main.asyncAfter(deadline: .now() + 8.0) {

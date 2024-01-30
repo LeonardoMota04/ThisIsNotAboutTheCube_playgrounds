@@ -26,13 +26,7 @@ class RubiksCube: SCNNode {
     var spaceBetweenCubes:Float = 0.0
     let colors:[UIColor] = [.orange, .green, .red, .blue, .yellow, .white]
     var cubeGeometry: SCNBox
-    
-//    var phase: Int {
-//        didSet {
-//            changeCubeTexture()
-//        }
-//    }
-    
+
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
@@ -46,6 +40,7 @@ class RubiksCube: SCNNode {
     }
     
     func createCube() {
+        // materials
         let greenMaterial = SCNMaterial()
         greenMaterial.diffuse.contents = UIColor.green
         
@@ -67,11 +62,13 @@ class RubiksCube: SCNNode {
         let blackMaterial = SCNMaterial()
         blackMaterial.diffuse.contents = UIColor.black
         
+        // initial positions
         let cubeOffsetDistance = self.cubeOffsetDistance()
         var xPos:Float = -cubeOffsetDistance
         var yPos:Float = -cubeOffsetDistance
         var zPos:Float = -cubeOffsetDistance
         
+        // iterations for each cube
         for i in 0..<2 {
             for j in 0..<2 {
                 for k in 0..<2 {
@@ -80,8 +77,7 @@ class RubiksCube: SCNNode {
                                               length: cubeWidth,
                                               chamferRadius: 0.15)
                     
-                    // TEXTURE
-                    /// normal cube
+                    // applying materials
                     var materials: [SCNMaterial] = []
                     if i == 0 && j == 0 {
                         materials = (k % 2 == 0)
@@ -103,10 +99,9 @@ class RubiksCube: SCNNode {
                         ? [greenMaterial, blackMaterial, blackMaterial, orangeMaterial, yellowMaterial, blackMaterial]
                         : [greenMaterial, redMaterial, blackMaterial, blackMaterial, yellowMaterial, blackMaterial]
                     }
-                    
                     cubeGeometry.materials = materials
                     
-                    
+                    // creating cube
                     let cube = SCNNode(geometry: cubeGeometry)
                     cube.position = SCNVector3(x: xPos, y: yPos, z: zPos)
                     xPos += Float(cubeWidth) + spaceBetweenCubes
@@ -122,20 +117,6 @@ class RubiksCube: SCNNode {
         }
     }
     
-    func getChildNodes() -> [SCNNode] {
-        return self.childNodes
-    }
-    
-    func changeCubeTexture() {
-        print("chamado!")
-        
-        let iceMaterial = SCNMaterial()
-        iceMaterial.diffuse.contents = (UIImage(named: "Ice"))
-        
-        for node in self.childNodes {
-            node.geometry?.materials = [iceMaterial]
-        }
-    }
     
     private func cubeOffsetDistance()->Float {
         return Float((cubeWidth) / 2)
@@ -170,8 +151,99 @@ class RubiksCube: SCNNode {
         return false
     }
     
+    func changeCubeTexture() {
+        print("chamado!")
+        
+        let iceMaterial = SCNMaterial()
+        iceMaterial.diffuse.contents = (UIImage(named: "Ice"))
+        
+        for node in self.childNodes {
+            node.geometry?.materials = [iceMaterial]
+        }
+    }
+    
+    func getRandomAdjacentContainer(rotationAxis: SCNVector3, plane: String) -> SCNNode {
+        let container = SCNNode()
+
+        guard let shuffledNodes = self.childNodes.shuffled() as? [SCNNode] else {
+            return container
+        }
+
+        // Selecione um node aleatório como ponto de partida
+        guard let initialNode = shuffledNodes.randomElement() else {
+            return container
+        }
+
+        // Filtra nodes que estão na mesma camada
+        let sameLayerNodes = shuffledNodes.filter {
+            switch plane {
+            case "X":
+                return $0.position.x.nearlyEqual(b: initialNode.position.x, tolerance: 0.025)
+            case "Y":
+                return $0.position.y.nearlyEqual(b: initialNode.position.y, tolerance: 0.025)
+            case "Z":
+                return $0.position.z.nearlyEqual(b: initialNode.position.z, tolerance: 0.025)
+            default:
+                return false
+            }
+        }
+
+        var selectedNodes: [SCNNode] = []
+
+        // Adiciona nodes adjacentes na mesma camada
+        for _ in 0..<4 {
+            // Adiciona um node aleatório próximo
+            if let newNode = sameLayerNodes.randomElement() {
+                selectedNodes.append(newNode)
+            }
+        }
+
+        // Adiciona os nodes selecionados ao contêiner
+        selectedNodes.forEach { container.addChildNode($0) }
+
+        return container
+    }
+
+    
+    
+    private func row(y: Float) -> SCNNode {
+        let container = SCNNode()
+        
+        for node in self.childNodes {
+            if let geo = node.geometry, geo is SCNBox, node.position.y.isAlmost(y) {
+                container.addChildNode(node)
+            }
+        }
+        return container
+    }
+    
+    private func col(x: Float) -> SCNNode {
+        let container = SCNNode()
+        
+        for node in self.childNodes {
+            if let geo = node.geometry, geo is SCNBox, node.position.x.isAlmost(x) {
+                container.addChildNode(node)
+            }
+        }
+        return container
+    }
+    
+
     
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 extension Float {
@@ -201,6 +273,24 @@ extension Float {
             return diff / (absA + absB) < tolerance
         }
     }
+    
+    func isAlmost(_ num : Float) -> Bool {
+        return abs(self - num) < 0.05
+    }
 
+    static func randomRotation() -> Float {
+        let randomFactor = Float.random(in: 0..<4) // 0, 1, 2 or 3
+        return randomFactor * Float.pi / 2
+    }
+//    // returns a random rotation in 90 degree intervals: 0, 90, 270, 360
+//    static func randomRotation() -> Float {
+//        // random between 1 and 359
+//        let randomDegreeNumber = Int(arc4random_uniform(360) + 1)
+//        // rounds it to nearest rotation
+//        let rotation = Float(Int((Double(randomDegreeNumber) / 90.0) + 0.5) * 90) * Float(Double.pi / 180)
+//        return rotation
+//    }
+//    
+    
 }
 
