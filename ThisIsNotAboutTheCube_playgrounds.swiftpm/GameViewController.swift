@@ -39,20 +39,39 @@ class ViewController: UIViewController, ObservableObject {
     // CONTROL VARIABLES
     var animationLock = false
     var shouldFloat = true
+    var canRotateCube = true
 
     var edgeDistance975 : Float = 0.975
     var tolerance25: Float = 0.025
     
     // onboarding controll
-    //var firstEverTouch: Bool = false
+    var firstEverTouch: Bool = false
+    var textNode01: SCNNode?
+    var textNode02: SCNNode?
+    
     var madeOneFingerMovements: Bool = false
     var madeTwoFingerMovements: Bool = false
     var movementsToPassTutorial: Int = 3
-    var readOnBoardingText: Bool = true
+    
+    
+    var readOnBoardingText1: Bool = false
+    var readOnBoardingText2: Bool = false
     var cameraIsMoving: Bool = false
+    var canRotateCamera: Bool = true
     
     // AUDIO
     let audioManager = AudioManager.shared
+    
+    // PHASE 1
+    var rotatedNodesPhase1: [SCNNode] = []
+    var podePassar1: Bool = false
+    
+    // PHASE 2
+    var rotatedNodesPhase2: [[SCNNode]] = []
+    
+    // PHASE 7
+    @Published var numOfMovementsPhase7: Int = 0
+    
     
     // MARK: - DIDLOAD
     override func viewDidLoad() {
@@ -65,39 +84,53 @@ class ViewController: UIViewController, ObservableObject {
         
     }
     
-    
-    func addNode(node: SCNNode) {
-        self.rootNode.addChildNode(node)
-    }
-    // MARK: - PHASES ===========================================================
+    // MARK: - PHASES 
+    // SETUP WHAT HAPPENS EVERYTIME A NEW PHASE COME IN
     func setupCurrentPhase() {
         switch currentPhaseIndex {
             case 0:
                 print("OnBoarding")
-
                 setupCamera()
-                //setupLights(camera: cameraNode, root: rootNode)
+                setupLabel(camera: self.cameraNode, root: self.rootNode)
                 audioManager.startBackgroundMusic()
-                //setupOnboarding()
                 
             case 1:
                 print("fase 1")
-                self.rubiksCube.changeCubeTexture()
-            self.createCenterBall()
+                shuffleCube(times: 15)
+                canRotateCamera = false
+//                 Rotate last layer
+                DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                    self.rotateLastLayer(axis: SCNVector3(0, 1, 0)) { rotatedNodes in
+                        self.rotatedNodesPhase1 = rotatedNodes
+                    }
+                    // Can rotate cube
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                        self.canRotateCube = true
+                        self.cameraIsMoving = false
+                    }
+                }
+                
             case 2:
                 print("fase 2")
+                canRotateCamera = true
+                // Can rotate cube
+           
             case 3:
                 print("fase 3")
             case 4:
                 print("fase 4")
+                setupLights(camera: self.cameraNode, root: self.rootNode)
             case 5:
                 print("fase 5")
+                setupVibrantLights(root: self.rootNode)
             case 6:
                 print("fase 6")
             case 7:
                 print("fase 7")
+                self.rubiksCube.changeCubeTexture()
             case 8:
                 print("fase 8")
+                self.createCenterBall()
             case 9:
                 print("fase 9")
             self.currentPhaseIndex = 0
@@ -107,18 +140,23 @@ class ViewController: UIViewController, ObservableObject {
             
         }
     }
+    // MARK: - EACH PHASE INTERACTIONS
     func HandleReactionsForEachMovementInPhase() {
         switch currentPhaseIndex {
             case 0:
-                print("OnBoardingAAAAAAAAA")
                 if numOfMovements == movementsToPassTutorial {
-                    self.madeOneFingerMovements = true // setupOnboarding()
-                } else if numOfMovements == requiredMovementsForCurrentPhase {
+                    self.madeOneFingerMovements = true
+                    self.canRotateCube = false
+                    numOfMovements = 0
+                } 
+            
+            case 1:
+                if podePassar1 {
                     moveToNextPhase()
                     numOfMovements = 0
                 }
             
-            case 1, 2, 3, 4, 5, 6, 7, 8, 9:
+            case 2, 3, 4, 5, 6, 7, 8, 9:
                 print("fases")
                 if numOfMovements == requiredMovementsForCurrentPhase {
                     moveToNextPhase()
@@ -149,37 +187,39 @@ class ViewController: UIViewController, ObservableObject {
         sceneView = SCNView(frame: self.view.frame)
         sceneView.scene = SCNScene()
         sceneView.backgroundColor = .clear
-        sceneView.showsStatistics = true
+        sceneView.showsStatistics = false
+        sceneView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         self.view.addSubview(sceneView)
         rootNode = sceneView.scene!.rootNode
     
         /// phases
         cubePhases = [
             /// Onboarding
-            PhaseModel(phaseNumber: 0, title: "", subtitle: "", actionLabel: "", backgroundColor: .black, movementsRequired: 5),
+            PhaseModel(phaseNumber: 0, title: "", subtitle: "", actionLabel: "", backgroundColor: .black, movementsRequired: 3),
             /// 1
             PhaseModel(phaseNumber: 1, 
-                       title: "Por onde começar?",
-                       subtitle: "Ao ter o primeiro contato com as dificuldades da vida, nos sentimos despreparados e não sabemos sequer por onde começar...", 
-                       actionLabel: "Respeite o seu tempo - um passo de cada vez.",
+                       title: "O PRIMEIRO PASSO",
+                       subtitle: "O ínicio. \nÉ normal sentir medo quando desafios aparecem em nossas vidas, muitas vezes não sabemos nem por onde começar. Mas é importante não pular etapas.",
+                       actionLabel: "Respeite o seu tempo - comece por baixo...",
                        backgroundColor: .blue,
                        movementsRequired: 1),
             /// 2
-            PhaseModel(phaseNumber: 2, title: "FASE 2 TÍTULO AQUI", subtitle: "", actionLabel: "ACAO2", backgroundColor: .red, movementsRequired: 5),
+            PhaseModel(phaseNumber: 2, title: "NADA PARECE CERTO", subtitle: "“A man of genius makes no mistakes; his errors are volitional and are the portals of discovery” \n- James Joyce", actionLabel: "Erre, erre, se perca. Uma hora vai dar certo...", backgroundColor: .red, movementsRequired: 8),
+            
             /// 3
-            PhaseModel(phaseNumber: 3, title: "FASE 3 TÍTULO AQUI", subtitle: "", actionLabel: "ACAO3", backgroundColor: .green, movementsRequired: 5),
+            PhaseModel(phaseNumber: 3, title: "RECOMPOR", subtitle: "", actionLabel: "ACAO3", backgroundColor: .green, movementsRequired: 5),
             /// 4
-            PhaseModel(phaseNumber: 3, title: "FASE 4 TÍTULO AQUI", subtitle: "", actionLabel: "ACAO4", backgroundColor: .purple, movementsRequired: 5),
+            PhaseModel(phaseNumber: 4, title: "LOST", subtitle: "É hora de desistir, tudo parece em vão.", actionLabel: "Pode tentar mover, você não sabe o que faz...", backgroundColor: .purple, movementsRequired: 10),
             /// 5
-            PhaseModel(phaseNumber: 3, title: "FASE 5 TÍTULO AQUI", subtitle: "", actionLabel: "ACAO5", backgroundColor: .red, movementsRequired: 5),
+            PhaseModel(phaseNumber: 5, title: "FOUND", subtitle: "Mesmo nos momentos difíceis, agarre-se às pequenas oportunidades, tudo fará sentido.", actionLabel: "Continue tentando...", backgroundColor: .red, movementsRequired: 15),
             /// 6
-            PhaseModel(phaseNumber: 3, title: "FASE 6 TÍTULO AQUI", subtitle: "", actionLabel: "ACAO6", backgroundColor: .white, movementsRequired: 5),
+            PhaseModel(phaseNumber: 6, title: "STABILITY", subtitle: "Depois que engajamos na solução, tudo fica mais leve, a busca pela estabilidade é importante em momentos de angústia!", actionLabel: "Aproveite, mas mantenha o foco...", backgroundColor: .white, movementsRequired: 10),
             /// 7
-            PhaseModel(phaseNumber: 3, title: "FASE 7 TÍTULO AQUI", subtitle: "", actionLabel: "ACAO7", backgroundColor: .red, movementsRequired: 5),
+            PhaseModel(phaseNumber: 7, title: "STUCK", subtitle: "Esse é o problema de relaxar demais: a procrastinação tende a nos deixar estagnados. É hora de correr atrás do que perdemos...", actionLabel: "", backgroundColor: .red, movementsRequired: 20),
             /// 8
-            PhaseModel(phaseNumber: 3, title: "FASE 8 TÍTULO AQUI", subtitle: "", actionLabel: "ACAO8", backgroundColor: .blue, movementsRequired: 5),
+            PhaseModel(phaseNumber: 8, title: "FASE 8 TÍTULO AQUI", subtitle: "", actionLabel: "ACAO8", backgroundColor: .blue, movementsRequired: 5),
             /// 9
-            PhaseModel(phaseNumber: 3, title: "FASE 9 TÍTULO AQUI", subtitle: "", actionLabel: "ACAO9", backgroundColor: .purple, movementsRequired: 5),
+            PhaseModel(phaseNumber: 9, title: "FASE 9 TÍTULO AQUI", subtitle: "", actionLabel: "ACAO9", backgroundColor: .purple, movementsRequired: 5),
         ]
 
         //setupCurrentPhase()
@@ -213,75 +253,73 @@ class ViewController: UIViewController, ObservableObject {
         cameraNode.position = SCNVector3Make(0, 0, 0)
         cameraNode.pivot = SCNMatrix4MakeTranslation(0, 0, -80) // CAMERA INITIAL POSITION
         cameraNode.eulerAngles = SCNVector3(0, 0, 0)
-
-        //if firstEverTouch {
-            startFirstAnimation()
-        //}
     }
     
     func startFirstAnimation () {
         // FIRST ANIMATION (ZOOM IN)
             SCNTransaction.begin()
-            SCNTransaction.animationDuration = 1
-        
+            SCNTransaction.animationDuration = 5
+            SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+
             self.cameraNode.pivot = SCNMatrix4MakeTranslation(0, 0, -10)
             self.cameraNode.eulerAngles = SCNVector3(-0.5, 0.75, 0)
             self.cameraIsMoving = true
             SCNTransaction.completionBlock = {
-                self.cameraIsMoving = false
-                //self.startSecondAnimation()
+                if !self.readOnBoardingText2 {
+                    self.cameraIsMoving = false
+                }
             }
             SCNTransaction.commit()
     }
     
     func startSecondAnimation(initialPosition: SCNVector3) {
-        // volta pro normal
+        // ANIMATION BEGINS
         SCNTransaction.begin()
         SCNTransaction.animationDuration = 1
         SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeIn)
     
         self.cameraNode.position = initialPosition
-        //self.cameraNode.eulerAngles = currentCameraRotation
         self.cameraNode.eulerAngles = SCNVector3(0, 0, 0)
         self.cameraNode.pivot = SCNMatrix4MakeTranslation(0, 0, -10) // CAMERA INITIAL POSITION
+        self.cameraIsMoving = true
 
         SCNTransaction.completionBlock = {
-            //DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-                
-                // esquerda
-                SCNTransaction.begin()
-                SCNTransaction.animationDuration = 4.0
-                SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-                self.cameraNode.position.x += 5.0
-            
-                SCNTransaction.completionBlock = {
-                    // direita
-                    // check if user read text
-                    if self.readOnBoardingText {
-                        SCNTransaction.begin()
-                        SCNTransaction.animationDuration = 4.0
-                        SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-                        self.cameraNode.position.x -= 10.0
-                        //self.cameraNode.eulerAngles = SCNVector3(-0.5, 0.75, 0)
-                        SCNTransaction.commit()
-                        
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-                            SCNTransaction.begin()
-                            SCNTransaction.animationDuration = 4.0
-                            SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-                            self.cameraNode.position.x += 5.0
-                            //self.cameraNode.eulerAngles = SCNVector3(-0.5, 0.75, 0)
-                            SCNTransaction.commit()
-                        }
-                    }
-                }
-                
-                SCNTransaction.commit()
-            //}
+            self.startThirdAnimation()
         }
+        
         SCNTransaction.commit()
-      
     }
+    
+    // esquerda
+    func startThirdAnimation() {
+        SCNTransaction.begin()
+        SCNTransaction.animationDuration = 2.0
+        SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        self.cameraNode.position.x += 5.0
+
+        SCNTransaction.commit()
+    }
+
+    // direitassa
+    func startFourthAnimation() {
+        SCNTransaction.begin()
+        SCNTransaction.animationDuration = 2.0
+        SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            self.cameraNode.position.x -= 10.0
+
+
+        SCNTransaction.commit()
+    }
+    
+    func startFifthAnimation() {
+        SCNTransaction.begin()
+        SCNTransaction.animationDuration = 2.0
+        SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        self.cameraNode.position.x += 5.0
+
+        SCNTransaction.commit()
+    }
+    
     
     func createCenterBall() {
         let ballGeometry = SCNSphere(radius: 0.1)
@@ -298,8 +336,25 @@ class ViewController: UIViewController, ObservableObject {
     // MARK: - GESTURE RECOGNIZERS
     func setupGestureRecognizers() {
         let panRecognizer = UIPanGestureRecognizer(target: self, action: #selector(sceneTouched(_:)))
-        sceneView.gestureRecognizers = [panRecognizer]
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(sceneTapped(_:)))
+        sceneView.gestureRecognizers = [panRecognizer, tapGesture]
     }
+    
+    
+    @objc
+    func sceneTapped(_ gestureRecognizer: UITapGestureRecognizer) {
+        guard let textNode01 = textNode01, let textNode02 = textNode02 else {
+            return 
+        }
+        // First touch
+        if !firstEverTouch {
+            startFirstAnimation() // Zoom in
+            //moveText(text1: textNode01, text2: textNode02, by: SCNVector3(-1, 8, 50), duration: 5)
+            moveText(text1: textNode01, text2: textNode02, by: SCNVector3(-0.5, -8, 50), duration: 5)
+            firstEverTouch = true
+        }
+    }
+    
     
     @objc
     func sceneTouched(_ recognizer: UIPanGestureRecognizer) {
@@ -308,7 +363,7 @@ class ViewController: UIViewController, ObservableObject {
         let currentPhase = cubePhases[currentPhaseIndex]
         
         // MARK: - 2 FINGERS: CAMERA
-        if recognizer.numberOfTouches == 2 && !cameraIsMoving {
+        if recognizer.numberOfTouches == 2 && !cameraIsMoving && canRotateCamera {
             switch recognizer.state {
 
             case .began:
@@ -340,19 +395,29 @@ class ViewController: UIViewController, ObservableObject {
                 
                 finalCameraPositionAfterManipulation = cameraNode.position
                 // SE ESTIVER NA FASE 0 E OS PRIMEIROS MOVIMENTOS JA TIVEREM SIDO FEITOS
-                if self.madeOneFingerMovements {
-                    self.madeTwoFingerMovements = true
-                    print("entrou aqui em kkkk")
-                    cameraNode.rotation = SCNVector4Make(axis.x, axis.y, axis.z, angle)
-                    
-                    if pode {
-                        self.pode = false
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                            self.madeTwoFingerMovements = true
-                            self.startSecondAnimation(initialPosition: self.finalCameraPositionAfterManipulation!)
+                switch currentPhaseIndex {
+                case 0:
+                    if self.madeOneFingerMovements {
+                        self.madeTwoFingerMovements = true
+                        cameraNode.rotation = SCNVector4Make(axis.x, axis.y, axis.z, angle)
+
+                        if pode {
+                            self.pode = false
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                                self.madeTwoFingerMovements = true
+                                self.startSecondAnimation(initialPosition: self.finalCameraPositionAfterManipulation!)
+                            }
                         }
                     }
+                case 2:
+                    cameraNode.rotation = SCNVector4Make(-axis.x, -axis.y, axis.z, -angle)
+                case 1, 3, 4, 5, 6, 7, 8, 9:
+                    cameraNode.rotation = SCNVector4Make(axis.x, axis.y, axis.z, angle)
+                default:
+                    cameraNode.rotation = SCNVector4Make(axis.x, axis.y, axis.z, angle)
                 }
+
+                
                 
             case .ended, .cancelled:
                 print("acabou a mov")
@@ -365,9 +430,7 @@ class ViewController: UIViewController, ObservableObject {
                     finalCameraPositionAfterManipulation = nil
                 }
             default:
-                if recognizer.numberOfTouches == 0 {
-                    print("aaaaasdasd")
-                }
+                return
             }
             
             
@@ -393,7 +456,7 @@ class ViewController: UIViewController, ObservableObject {
             && hitResults.count > 0
             && recognizer.state == UIGestureRecognizer.State.began
             && beganPanNode == nil 
-            // animation conditionalsπ
+            && canRotateCube
             && !cameraIsMoving {
 
             beganPanHitResult = hitResults[0]
@@ -514,7 +577,7 @@ class ViewController: UIViewController, ObservableObject {
                     || ((side == CubeSide.front || side == CubeSide.back) && plane == "X") {
                         self.rotationAxis = SCNVector3(0,1,0) // Y
                     //print("Z ou X \(child.position.y.nearlyEqual(b: self.beganPanNode.position.y, tolerance: tolerance25))")
-                    return child.position.y.nearlyEqual(b: self.beganPanNode.position.y, tolerance: tolerance25)
+                    return child.position.y.isVeryClose(to: self.beganPanNode.position.y, withTolerance: tolerance25)
                 }
                 
                 
@@ -523,7 +586,7 @@ class ViewController: UIViewController, ObservableObject {
                     || ((side == CubeSide.up || side == CubeSide.down) && plane == "X") {
                         self.rotationAxis = SCNVector3(0,0,1) // Z
                         //print("\nY ou X \(child.position.z.nearlyEqual(b: self.beganPanNode.position.z, tolerance: tolerance25))")
-                        return child.position.z.nearlyEqual(b: self.beganPanNode.position.z, tolerance: tolerance25)
+                        return child.position.z.isVeryClose(to: self.beganPanNode.position.z, withTolerance: tolerance25)
                 }
                 
                 
@@ -534,41 +597,124 @@ class ViewController: UIViewController, ObservableObject {
                     || ((side == CubeSide.up || side == CubeSide.down) && plane == "Z") {
                         self.rotationAxis = SCNVector3(1,0,0) // X
                         //print("\nY ou Z \(child.position.x.nearlyEqual(b: self.beganPanNode.position.x, tolerance: tolerance25))")
-                        return child.position.x.nearlyEqual(b: self.beganPanNode.position.x, tolerance: tolerance25)
+                        return child.position.x.isVeryClose(to: self.beganPanNode.position.x, withTolerance: tolerance25)
                 }
                 
                 
                 return false
             }
             
-            // this shouldnt happen, so exit
             if nodesToRotate.count <= 0 {
                 self.animationLock = false
                 self.beganPanNode = nil
                 return
             }
             
-            // add nodes we want to rotate to a parent node so that we can rotate relative to the root
+            // container that holds all nodes to rotate after touch finished
             let container = SCNNode()
-            print("nodes para rotacionar")
+            //print("nodes para rotacionar")
             rootNode.addChildNode(container)
             for nodeToRotate in nodesToRotate {
-                print(nodeToRotate.position)
+                //print(nodeToRotate)
                 container.addChildNode(nodeToRotate)
             }
             
+            // MARK: - ROTATIONS ACTIONS
             // create action
             let rotationAngle = CGFloat(direction) * .pi/2
             let rotation_Action = SCNAction.rotate(by: rotationAngle, around: self.rotationAxis, duration: 0.2)
-            let invertedRotation_Action = SCNAction.rotate(by: -rotationAngle, around: self.rotationAxis, duration: 0.2)
             
-            var finalRotation_Action: SCNAction
-            if currentPhaseIndex == 2 {
-                finalRotation_Action = invertedRotation_Action
-            } else {
-                finalRotation_Action = rotation_Action
-            }
+            /// phase 1 - um em baixo
+            /// phase 2 - reagem de forma contraria
+            /// phase 3 - recuperacao
+            /// phase 4 - sombras, perde cores, refletir
+            /// phase 5 - vibrante, rotar camera
+            /// phase 6 - flutuante, movimento lento, usar coremotion?
+            /// phase 7 - congelado, lento e 15x em uma so
+            /// phase 8 - transparente, 1 toque na central, bloquear
+            /// phase 9 - montado, ganhar cores
+            
+            var finalRotation_Action: SCNAction = rotation_Action
+            
+            let nodesToRotateSet = Set(nodesToRotate) // sequencia nao importa
+            let rotatedNodesPhase1Set = Set(self.rotatedNodesPhase1)
+            let rotatedNodesPhase2Set = Set(self.rotatedNodesPhase2)
 
+            switch currentPhaseIndex {
+            case 1:
+                print("fase 1")
+                // animacao de rotacao bloqueada
+                let rotationAngle = CGFloat(direction) * .pi / 4
+                // Ação de rotação bloqueada
+                let rotateRightAction = SCNAction.rotate(by: rotationAngle, around: self.rotationAxis, duration: 0.1)
+                let rotateLeftAction = SCNAction.rotate(by: -rotationAngle*2, around: self.rotationAxis, duration: 0.1)
+                
+                let lockedRotation_Action = SCNAction.sequence([rotateRightAction, rotateLeftAction, rotateRightAction])
+                
+                if nodesToRotateSet == rotatedNodesPhase1Set {
+                    podePassar1 = true
+                } else {
+                    finalRotation_Action = lockedRotation_Action
+                }
+                
+            case 2:
+                let invertedRotation_Action = SCNAction.rotate(by: -rotationAngle, around: self.rotationAxis, duration: 0.2)
+                finalRotation_Action = invertedRotation_Action
+                
+                rotatedNodesPhase2.append(nodesToRotate)
+            case 3:
+                print("fase 3")
+//                // Inverte rotatedNodesPhase2
+//                //let reversedRotatedNodesPhase2 = Array(rotatedNodesPhase2.reversed())
+//
+//                // animacao de rotacao bloqueada
+//                let rotationAngle = CGFloat(direction) * .pi / 4
+//                // Ação de rotação bloqueada
+//                let rotateRightAction = SCNAction.rotate(by: rotationAngle, around: self.rotationAxis, duration: 0.1)
+//                let rotateLeftAction = SCNAction.rotate(by: -rotationAngle*2, around: self.rotationAxis, duration: 0.1)
+//                
+//                let lockedRotation_Action = SCNAction.sequence([rotateRightAction, rotateLeftAction, rotateRightAction])
+//                
+//                // Inverte rotatedNodesPhase2
+//                let reversedRotatedNodesPhase2 = Array(rotatedNodesPhase2.reversed())
+//                
+//                
+//                
+//                // Verifica se nodesToRotateSet é igual ao conjunto de rotatedNodesPhase2 de trás para frente
+//                if nodesToRotateSet == Set(rotatedNodesPhase2[0]) {
+//                    finalRotation_Action = rotation_Action
+//                } else {
+//                    finalRotation_Action = lockedRotation_Action
+//                    print("NODES TO ROTATE: \(nodesToRotate.count)")
+//                    print("ROTATED: \(rotatedNodesPhase2[0].count)")
+//                }
+                
+                
+            case 4:
+                print("fase 4")
+                
+            case 5:
+                print("fase 5")
+            case 6:
+                print("espaço")
+                let slowedRotation_Action = SCNAction.rotate(by: rotationAngle, around: self.rotationAxis, duration: 1.0)
+                finalRotation_Action = slowedRotation_Action
+                
+            case 7:
+                print("fase 7")
+                let icedRotation_Action = SCNAction.rotate(by: rotationAngle/10, around: self.rotationAxis, duration: 0.5)
+                finalRotation_Action = icedRotation_Action
+            case 8:
+                print("fase 8")
+            case 9:
+                print("fase 9")
+            
+            default:
+                print("fase fora aq")
+                finalRotation_Action = rotation_Action
+
+            }
+            
             // TIRANDO NODES DO CONTAINER
             container.runAction(finalRotation_Action) {
                 for node: SCNNode in nodesToRotate {
@@ -581,10 +727,10 @@ class ViewController: UIViewController, ObservableObject {
                 //self.rubiksCube.changeCubeTexture()
                 self.HandleReactionsForEachMovementInPhase()
                 //print("\n\nLADO NORTE RESOLVIDO: \(self.rubiksCube.isNorthWallSolved())")
-                print("ROTACAO ANGULO: \(rotationAngle) / ROTACAOaxis: \(self.rotationAxis!)")
-                print("lado: \(side!)")
-                print("plano: \(plane)")
-                print("direction: \(direction)")
+                //print("ROTACAO ANGULO: \(rotationAngle) / ROTACAOaxis: \(self.rotationAxis!)")
+                //print("lado: \(side!)")
+                //print("plano: \(plane)")
+                //print("direction: \(direction)")
                 print("NUM DE MOVIMENTOS: \(self.numOfMovements)")
                 self.animationLock = false
                 self.animationLock = false
@@ -593,57 +739,185 @@ class ViewController: UIViewController, ObservableObject {
         }
     }
     
-    
+    func setupLabel(camera: SCNNode, root: SCNNode) {
+        if let customFont = UIFont(name: "fffforward", size: 5) {
+            // Criar os textos
+            let thisIsNotAbout = "THIS IS NOT ABOUT"
+            let theCube = "THE CUBE"
 
-    
-    func rotateNovo() {
-        // Obtenha um contêiner com nodes na mesma camada
-        let containerNovo = self.rubiksCube.getRandomAdjacentContainer(rotationAxis: self.rotationAxis, plane: "Z")
-        rootNode.addChildNode(containerNovo)
-        print(containerNovo.childNodes.count)
-        // Crie a ação de rotação
-        let rotationAngle = CGFloat(1) * .pi/2
-        let rotation_Action = SCNAction.rotate(by: rotationAngle, around: self.rotationAxis, duration: 0.2)
+            let textGeometry1 = SCNText(string: thisIsNotAbout, extrusionDepth: 0.5)
+            let textGeometry2 = SCNText(string: theCube, extrusionDepth: 0.5)
 
-        // Execute a ação no contêiner
-        containerNovo.runAction(rotation_Action) {
-            // Reposicione os nodes no cubo após a rotação
-            for node: SCNNode in containerNovo.childNodes {
+            textGeometry1.font = customFont
+            textGeometry1.flatness = 0.1
+
+            textGeometry2.font = customFont
+            textGeometry2.flatness = 0.1
+
+            // materials
+            let grayMaterial = SCNMaterial()
+            grayMaterial.diffuse.contents = UIColor(named: "color_darkerGray")
+            let blackMaterial = SCNMaterial()
+            blackMaterial.diffuse.contents = UIColor.black
+            
+            textGeometry1.materials = [grayMaterial, blackMaterial, blackMaterial]
+            textGeometry2.materials = [grayMaterial, blackMaterial, blackMaterial]
+
+            // text nodes
+            let textNode1 = SCNNode(geometry: textGeometry1)
+            let textNode2 = SCNNode(geometry: textGeometry2)
+
+            // text sizes for positions
+            let textSize1_X = textGeometry1.boundingBox.max.x - textGeometry1.boundingBox.min.x
+            let textSize1_Y = textGeometry1.boundingBox.max.y - textGeometry1.boundingBox.min.y
+        
+            let textSize2_X = textGeometry2.boundingBox.max.x - textGeometry2.boundingBox.min.x
+            let textSize2_Y = textGeometry2.boundingBox.max.y - textGeometry2.boundingBox.min.y
+
+        
+            textNode1.position = SCNVector3(-Float(textSize1_X) / 2, Float(textSize1_Y) / 2, -50)
+            textNode2.position = SCNVector3(-Float(textSize2_X) / 2, -Float(textSize2_Y) * 2, -50)
+
+            camera.addChildNode(textNode1)
+            camera.addChildNode(textNode2)
+            
+            textNode01 = textNode1
+            textNode02 = textNode2
+
+        } else {
+            print("Erro: Não foi possível carregar a fonte personalizada.")
+        }
+    }
+    
+    func moveText(text1: SCNNode, text2: SCNNode, by: SCNVector3, duration: TimeInterval) {
+        let moveAction = SCNAction.move(by: by, duration: duration)
+        moveAction.timingMode = .easeIn
+        text1.runAction(moveAction); text2.runAction(moveAction)
+    }
+
+
+    func rotate(axis: SCNVector3, negative: Bool, completion: @escaping ([SCNNode]) -> Void) {
+        let container = SCNNode()
+        let wallNodes = rubiksCube.getWall(forAxis: axis, negative: negative)
+        rootNode.addChildNode(container)
+        for node in wallNodes {
+            container.addChildNode(node)
+        }
+        
+        let rotationAction = SCNAction.rotate(by: .pi/2, around: axis, duration: 0.1)
+        rotationAction.timingMode = .easeInEaseOut
+        
+        // TIRANDO NODES DO CONTAINER
+        container.runAction(rotationAction) {
+            var rotatedNodes: [SCNNode] = []
+            
+            for node: SCNNode in container.childNodes {
                 let transform = node.parent!.convertTransform(node.transform, to: self.rubiksCube)
                 node.removeFromParentNode()
                 node.transform = transform
                 self.rubiksCube.addChildNode(node)
+                rotatedNodes.append(node)
             }
+            completion(rotatedNodes)
+            self.animationLock = false
+            self.beganPanNode = nil
+        }
+    }
+    
+    func shuffleCube(times: Int) {
+        let numberOfMoves = times
+        // Função para executar um movimento aleatório
+        func performRandomMove(completion: @escaping () -> Void) {
+            let randomValue = Float.random(in: 0...1)
+            let randomAxis: SCNVector3
+            
+            if randomValue < 0.33 {
+                // Caso em que x é 1
+                randomAxis = SCNVector3(x: 1, y: 0, z: 0)
+            } else if randomValue < 0.66 {
+                // Caso em que y é 1
+                randomAxis = SCNVector3(x: 0, y: 1, z: 0)
+            } else {
+                // Caso em que z é 1
+                randomAxis = SCNVector3(x: 0, y: 0, z: 1)
+            }
+            
+            let randomNegative = Bool.random()
+            
+            rotate(axis: randomAxis, negative: randomNegative) { nodes in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    completion()
+                }
+            }
+        }
 
-            // Libere o bloqueio da animação
+        
+        // Função para executar a próxima iteração do embaralhamento
+        func performNextIteration(iteration: Int) {
+            if iteration < numberOfMoves {
+                performRandomMove {
+                    performNextIteration(iteration: iteration + 1)
+                }
+            }
+        }
+        
+        // Iniciar o embaralhamento
+        performNextIteration(iteration: 0)
+    }
+
+
+    // PHASE 1
+    func rotateLastLayer(axis: SCNVector3, completion: @escaping ([SCNNode]) -> Void) {
+        let container = SCNNode()
+        let wallNodes = rubiksCube.getWall(forAxis: axis, negative: true)
+        rootNode.addChildNode(container)
+        for node in wallNodes {
+            container.addChildNode(node)
+        }
+       
+        let rotateAction = SCNAction.rotate(by: .pi*2, around: axis, duration: 1)
+        rotateAction.timingMode = .easeInEaseOut
+        // TIRANDO NODES DO CONTAINER
+        container.runAction(rotateAction) {
+            var rotatedNodes: [SCNNode] = []
+            
+            for node: SCNNode in container.childNodes {
+                let transform = node.parent!.convertTransform(node.transform, to: self.rubiksCube)
+                node.removeFromParentNode()
+                node.transform = transform
+                self.rubiksCube.addChildNode(node)
+                rotatedNodes.append(node)
+            }
+            completion(rotatedNodes)
             self.animationLock = false
             self.beganPanNode = nil
         }
     }
 
+
     private func selectedCubeSide(hitResult: SCNHitTestResult, edgeDistanceFromOrigin:Float) -> CubeSide {
         
         // X
-        if beganPanHitResult.worldCoordinates.x.nearlyEqual(b: edgeDistanceFromOrigin, tolerance: tolerance25) {
+        if beganPanHitResult.worldCoordinates.x.isVeryClose(to: edgeDistanceFromOrigin, withTolerance: tolerance25) {
             return .right
         }
-        else if beganPanHitResult.worldCoordinates.x.nearlyEqual(b: -edgeDistanceFromOrigin, tolerance: tolerance25) {
+        else if beganPanHitResult.worldCoordinates.x.isVeryClose(to: -edgeDistanceFromOrigin, withTolerance: tolerance25) {
             return .left
         }
         
         // Y
-        else if beganPanHitResult.worldCoordinates.y.nearlyEqual(b: edgeDistanceFromOrigin, tolerance: tolerance25) {
+        else if beganPanHitResult.worldCoordinates.y.isVeryClose(to: edgeDistanceFromOrigin, withTolerance: tolerance25) {
             return .up
         }
-        else if beganPanHitResult.worldCoordinates.y.nearlyEqual(b: -edgeDistanceFromOrigin, tolerance: tolerance25) {
+        else if beganPanHitResult.worldCoordinates.y.isVeryClose(to: -edgeDistanceFromOrigin, withTolerance: tolerance25) {
             return .down
         }
         
         // Z
-        else if beganPanHitResult.worldCoordinates.z.nearlyEqual(b: edgeDistanceFromOrigin, tolerance: tolerance25) {
+        else if beganPanHitResult.worldCoordinates.z.isVeryClose(to: edgeDistanceFromOrigin, withTolerance: tolerance25) {
             return .front
         }
-        else if beganPanHitResult.worldCoordinates.z.nearlyEqual(b: -edgeDistanceFromOrigin, tolerance: tolerance25) {
+        else if beganPanHitResult.worldCoordinates.z.isVeryClose(to: -edgeDistanceFromOrigin, withTolerance: tolerance25) {
             return .back
         }
         return .none

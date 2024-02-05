@@ -73,37 +73,42 @@ class RubiksCube: SCNNode {
             for j in 0..<2 {
                 for k in 0..<2 {
                     self.cubeGeometry = SCNBox(width: cubeWidth,
-                                              height: cubeWidth,
-                                              length: cubeWidth,
-                                              chamferRadius: 0.15)
+                                               height: cubeWidth,
+                                               length: cubeWidth,
+                                               chamferRadius: 0.15)
                     
                     // applying materials
                     var materials: [SCNMaterial] = []
                     if i == 0 && j == 0 {
                         materials = (k % 2 == 0)
-                        ? [blackMaterial, blackMaterial, blueMaterial, orangeMaterial, blackMaterial, whiteMaterial]
-                        : [blackMaterial, redMaterial, blueMaterial, blackMaterial, blackMaterial, whiteMaterial]
+                        ? [blackMaterial, blackMaterial, blueMaterial, orangeMaterial, blackMaterial, yellowMaterial]
+                        : [blackMaterial, redMaterial, blueMaterial, blackMaterial, blackMaterial, yellowMaterial]
                     }
                     if i == 0 && j == 1 {
                         materials = (k % 2 == 0)
-                        ? [blackMaterial, blackMaterial, blueMaterial, orangeMaterial, yellowMaterial, blackMaterial]
-                        : [blackMaterial, redMaterial, blueMaterial, blackMaterial, yellowMaterial, blackMaterial]
+                        ? [blackMaterial, blackMaterial, blueMaterial, orangeMaterial, whiteMaterial, blackMaterial]
+                        : [blackMaterial, redMaterial, blueMaterial, blackMaterial, whiteMaterial, blackMaterial]
                     }
                     if i == 1 && j == 0 {
                         materials = (k % 2 == 0)
-                        ? [greenMaterial, blackMaterial, blackMaterial, orangeMaterial, blackMaterial, whiteMaterial]
-                        : [greenMaterial, redMaterial, blackMaterial, blackMaterial, blackMaterial, whiteMaterial]
+                        ? [greenMaterial, blackMaterial, blackMaterial, orangeMaterial, blackMaterial, yellowMaterial]
+                        : [greenMaterial, redMaterial, blackMaterial, blackMaterial, blackMaterial, yellowMaterial]
                     }
                     if i == 1 && j == 1 {
                         materials = (k % 2 == 0)
-                        ? [greenMaterial, blackMaterial, blackMaterial, orangeMaterial, yellowMaterial, blackMaterial]
-                        : [greenMaterial, redMaterial, blackMaterial, blackMaterial, yellowMaterial, blackMaterial]
+                        ? [greenMaterial, blackMaterial, blackMaterial, orangeMaterial, whiteMaterial, blackMaterial]
+                        : [greenMaterial, redMaterial, blackMaterial, blackMaterial, whiteMaterial, blackMaterial]
                     }
+                    
                     cubeGeometry.materials = materials
                     
                     // creating cube
                     let cube = SCNNode(geometry: cubeGeometry)
                     cube.position = SCNVector3(x: xPos, y: yPos, z: zPos)
+                    
+                    // nome
+                    cube.name = "\(i)-\(j)-\(k)"
+                    
                     xPos += Float(cubeWidth) + spaceBetweenCubes
                     
                     self.addChildNode(cube)
@@ -123,24 +128,47 @@ class RubiksCube: SCNNode {
     }
     
     func getSouthWall() -> [SCNNode] {
-        let southWallNodes = self.childNodes { (child, stop) -> Bool in
-            return child.position.z.nearlyEqual(b: self.cubeOffsetDistance(), tolerance: 0.01)
+        let southWallNodes = self.childNodes { (child, _) -> Bool in
+            return child.position.z.isVeryClose(to: self.cubeOffsetDistance(), withTolerance: 0.01)
         }
         return southWallNodes
     }
     
-    func getNorthWall() -> [SCNNode] {
-        let northWallNodes = self.childNodes { (child, stop) -> Bool in
-            return child.position.z.nearlyEqual(b: -self.cubeOffsetDistance(), tolerance: 0.01)
+    func getChildPositions(forAxis axis: SCNVector3, node: SCNNode) -> Float {
+        switch axis {
+        case SCNVector3(x: 1, y: 0, z: 0):  // Check for x-axis
+            return node.position.x
+        case SCNVector3(x: 0, y: 1, z: 0):  // Check for y-axis
+            return node.position.y
+        case SCNVector3(x: 0, y: 0, z: 1):  // Check for z-axis
+            return node.position.z
+        default:
+            fatalError()
+        }
+    }
+
+    // Returns a specif wall of nodes (independent of the colors in it) to rotate
+    func getWall(forAxis axis: SCNVector3, negative: Bool) -> [SCNNode] {
+        let nodes = self.childNodes { (child, _) -> Bool in
+            let childPosition = getChildPositions(forAxis: axis, node: child)
+            return childPosition.isVeryClose(to: negative ? -self.cubeOffsetDistance() : self.cubeOffsetDistance(), withTolerance: 0.01)
+        }
+        return nodes
+    }
+
+    func getZWall() -> [SCNNode] {
+        let northWallNodes = self.childNodes { (child, _) -> Bool in
+            return child.position.z.isVeryClose(to: self.cubeOffsetDistance(), withTolerance: 0.01)
+            //return child.position.z == self.cubeOffsetDistance()
         }
         return northWallNodes
     }
     
-    func isNorthWallSolved() -> Bool {
-        let northWallNodes = getNorthWall()
-        let material = northWallNodes[0].geometry?.materials[0]
-        for i in 1..<northWallNodes.count {
-            if material != northWallNodes[i].geometry?.materials[0] {
+    func isZWallSolved() -> Bool {
+        let zWallNodes = getZWall()
+        let material = zWallNodes[0].geometry?.materials[0]
+        for i in 1..<zWallNodes.count {
+            if material != zWallNodes[i].geometry?.materials[0] {
                 return false
             }
         }
@@ -162,66 +190,35 @@ class RubiksCube: SCNNode {
         }
     }
     
-    func getRandomAdjacentContainer(rotationAxis: SCNVector3, plane: String) -> SCNNode {
-        let container = SCNNode()
-
-        guard let shuffledNodes = self.childNodes.shuffled() as? [SCNNode] else {
-            return container
-        }
-
-        // Selecione um node aleatório como ponto de partida
-        guard let initialNode = shuffledNodes.randomElement() else {
-            return container
-        }
-
-        // Filtra nodes que estão na mesma camada
-        let sameLayerNodes = shuffledNodes.filter {
-            switch plane {
-            case "X":
-                return $0.position.x.nearlyEqual(b: initialNode.position.x, tolerance: 0.025)
-            case "Y":
-                return $0.position.y.nearlyEqual(b: initialNode.position.y, tolerance: 0.025)
-            case "Z":
-                return $0.position.z.nearlyEqual(b: initialNode.position.z, tolerance: 0.025)
-            default:
-                return false
-            }
-        }
-
-        var selectedNodes: [SCNNode] = []
-
-        // Adiciona nodes adjacentes na mesma camada
-        for _ in 0..<4 {
-            // Adiciona um node aleatório próximo
-            if let newNode = sameLayerNodes.randomElement() {
-                selectedNodes.append(newNode)
-            }
-        }
-
-        // Adiciona os nodes selecionados ao contêiner
-        selectedNodes.forEach { container.addChildNode($0) }
-
-        return container
-    }
-
-    
-    
-    private func row(y: Float) -> SCNNode {
+    func row(yy: Float, childNodes: [SCNNode]) -> SCNNode {
         let container = SCNNode()
         
-        for node in self.childNodes {
-            if let geo = node.geometry, geo is SCNBox, node.position.y.isAlmost(y) {
+        for node in childNodes {
+            if let geo = node.geometry, geo is SCNBox && node.isHidden && node.position.y >= -2 && (node.position.y.isAlmost(yy)) {
                 container.addChildNode(node)
             }
         }
         return container
     }
     
-    private func col(x: Float) -> SCNNode {
+    func col(xx: Float, childNodes: [SCNNode]) -> SCNNode {
         let container = SCNNode()
         
-        for node in self.childNodes {
-            if let geo = node.geometry, geo is SCNBox, node.position.x.isAlmost(x) {
+        for node in childNodes {
+            if let geo = node.geometry, geo is SCNBox && node.isHidden && node.position.y >= -2 && (node.position.x.isAlmost(xx) || node.presentation.position.x.isAlmost(xx)) {
+                node.removeFromParentNode()
+                container.addChildNode(node)
+            }
+        }
+        return container
+    }
+    
+    func col(zz: Float, childNodes: [SCNNode]) -> SCNNode {
+        let container = SCNNode()
+        
+        for node in childNodes {
+            if let geo = node.geometry, geo is SCNBox && node.isHidden && node.position.y >= -2 && (node.position.z.isAlmost(zz) || node.presentation.position.z.isAlmost(zz)) {
+                node.removeFromParentNode()
                 container.addChildNode(node)
             }
         }
@@ -235,17 +232,6 @@ class RubiksCube: SCNNode {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 extension Float {
 //    func nearlyEqual(b: Float, tolerance: Float) -> Bool {
 //        
@@ -255,22 +241,22 @@ extension Float {
 //        
 //    }
     
-    func nearlyEqual(b: Float, tolerance: Float) -> Bool {
+    func isVeryClose(to: Float, withTolerance: Float) -> Bool {
         let a = self
         let absA = abs(a)
-        let absB = abs(b)
-        let diff = abs(a - b)
+        let absB = abs(to)
+        let diff = abs(a - to)
         
-        if (a == b) {
+        if (a == to) {
             // Se a e b são iguais, não há necessidade de verificar mais nada.
             return true
-        } else if (a == 0 || b == 0 || diff < Float.leastNormalMagnitude) {
+        } else if (a == 0 || to == 0 || diff < Float.leastNormalMagnitude) {
             // Se a ou b é zero ou ambos são extremamente próximos de zero,
             // a comparação de erro relativo é menos significativa aqui.
-            return diff < (tolerance * Float.leastNormalMagnitude)
+            return diff < (withTolerance * Float.leastNormalMagnitude)
         } else {
             // Usar erro relativo.
-            return diff / (absA + absB) < tolerance
+            return diff / (absA + absB) < withTolerance
         }
     }
     
@@ -294,3 +280,8 @@ extension Float {
     
 }
 
+extension SCNVector3: Equatable {
+    public static func == (lhs: SCNVector3, rhs: SCNVector3) -> Bool {
+        return lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z
+    }
+}
