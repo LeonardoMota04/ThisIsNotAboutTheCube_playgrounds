@@ -48,12 +48,9 @@ class ViewController: UIViewController, ObservableObject {
     var firstEverTouch: Bool = false
     var textNode01: SCNNode?
     var textNode02: SCNNode?
-    
     var madeOneFingerMovements: Bool = false
     var madeTwoFingerMovements: Bool = false
     var movementsToPassTutorial: Int = 3
-    
-    
     var readOnBoardingText1: Bool = false
     var readOnBoardingText2: Bool = false
     var cameraIsMoving: Bool = false
@@ -191,38 +188,9 @@ class ViewController: UIViewController, ObservableObject {
         sceneView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         self.view.addSubview(sceneView)
         rootNode = sceneView.scene!.rootNode
-    
-        /// phases
-        cubePhases = [
-            /// Onboarding
-            PhaseModel(phaseNumber: 0, title: "", subtitle: "", actionLabel: "", backgroundColor: .black, movementsRequired: 3),
-            /// 1
-            PhaseModel(phaseNumber: 1, 
-                       title: "O PRIMEIRO PASSO",
-                       subtitle: "O ínicio. \nÉ normal sentir medo quando desafios aparecem em nossas vidas, muitas vezes não sabemos nem por onde começar. Mas é importante não pular etapas.",
-                       actionLabel: "Respeite o seu tempo - comece por baixo...",
-                       backgroundColor: .blue,
-                       movementsRequired: 1),
-            /// 2
-            PhaseModel(phaseNumber: 2, title: "NADA PARECE CERTO", subtitle: "“A man of genius makes no mistakes; his errors are volitional and are the portals of discovery” \n- James Joyce", actionLabel: "Erre, erre, se perca. Uma hora vai dar certo...", backgroundColor: .red, movementsRequired: 8),
-            
-            /// 3
-            PhaseModel(phaseNumber: 3, title: "RECOMPOR", subtitle: "", actionLabel: "ACAO3", backgroundColor: .green, movementsRequired: 5),
-            /// 4
-            PhaseModel(phaseNumber: 4, title: "LOST", subtitle: "É hora de desistir, tudo parece em vão.", actionLabel: "Pode tentar mover, você não sabe o que faz...", backgroundColor: .purple, movementsRequired: 10),
-            /// 5
-            PhaseModel(phaseNumber: 5, title: "FOUND", subtitle: "Mesmo nos momentos difíceis, agarre-se às pequenas oportunidades, tudo fará sentido.", actionLabel: "Continue tentando...", backgroundColor: .red, movementsRequired: 15),
-            /// 6
-            PhaseModel(phaseNumber: 6, title: "STABILITY", subtitle: "Depois que engajamos na solução, tudo fica mais leve, a busca pela estabilidade é importante em momentos de angústia!", actionLabel: "Aproveite, mas mantenha o foco...", backgroundColor: .white, movementsRequired: 10),
-            /// 7
-            PhaseModel(phaseNumber: 7, title: "STUCK", subtitle: "Esse é o problema de relaxar demais: a procrastinação tende a nos deixar estagnados. É hora de correr atrás do que perdemos...", actionLabel: "", backgroundColor: .red, movementsRequired: 20),
-            /// 8
-            PhaseModel(phaseNumber: 8, title: "FASE 8 TÍTULO AQUI", subtitle: "", actionLabel: "ACAO8", backgroundColor: .blue, movementsRequired: 5),
-            /// 9
-            PhaseModel(phaseNumber: 9, title: "FASE 9 TÍTULO AQUI", subtitle: "", actionLabel: "ACAO9", backgroundColor: .purple, movementsRequired: 5),
-        ]
-
-        //setupCurrentPhase()
+        
+        /// setup all phases
+        cubePhases = PhaseModel.phases
     }
 
     // MARK: - CUBE
@@ -413,6 +381,7 @@ class ViewController: UIViewController, ObservableObject {
                     cameraNode.rotation = SCNVector4Make(-axis.x, -axis.y, axis.z, -angle)
                 case 1, 3, 4, 5, 6, 7, 8, 9:
                     cameraNode.rotation = SCNVector4Make(axis.x, axis.y, axis.z, angle)
+
                 default:
                     cameraNode.rotation = SCNVector4Make(axis.x, axis.y, axis.z, angle)
                 }

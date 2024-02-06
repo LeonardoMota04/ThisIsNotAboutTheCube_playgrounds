@@ -50,11 +50,15 @@ struct PhasesView: View {
             Spacer()
 
             /// Action Label
-            Text(actionLabel)
-                .font(Font.custom("fffforward", size: 20))
-                .foregroundStyle(.white)
-                .opacity(actionLabelOpacity)
-                .padding(.bottom, 100)
+            VStack(spacing: 10) {
+                Text(actionLabel)
+                    .font(Font.custom("fffforward", size: 20))
+                    .foregroundStyle(.white)
+                    .opacity(actionLabelOpacity)
+                    .padding(.bottom, 100)
+                //Text("\(vc.numOfMovements) / \(vc.currentPhase.movementsRequired)")
+            }
+            
         }
         .padding()
         

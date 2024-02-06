@@ -11,56 +11,66 @@ import SceneKit
 struct ContentView: View {
     @ObservedObject private var vc = ViewController()
 
+    // ONBOARDING
     @State private var isLoading = true
+    private let loadingInterval: TimeInterval = 0.2
     @State private var pressToStartLabel = "Press to start"
     @State private var titleLabel: String = "Before we start..."
-    @State private var subtitleLabel: String = ""
-    @State private var actionLabel: String = ""
-    @State private var textOpacity: Double = 0.0
-    @State private var onboardingTextOpacity: Double = 0.0
+    @State private var textOpacity: Double = 0.0 // antes dos textos
+    @State private var onboardingTextOpacity: Double = 0.0 // textos
     @State private var buttonOpacity: Double = 0.0
-    
     @State private var bgLinesScale: Double = 1.0
     @State private var bgHoleScale: Double = 0.0
     @State private var bgHoleOpacity: Double = 1.0
     
-
-    private let loadingInterval: TimeInterval = 0.2
-    @State private var timerIndex = 0
-    
-    @State private var uiPhasesOpacity: Double = 0.0
-    
     // PHASES
+    @State private var uiPhasesOpacity: Double = 0.0
     /// 2
     @State private var isGlitching = false
     /// 4
     @State private var saturationScene: Double = 1
+    @State private var backgroundOffset: CGFloat = 0
     
     var body: some View {
         
-        let cfURL = Bundle.main.url(forResource: "fffforward", withExtension: "ttf")
-        let _ = CTFontManagerRegisterFontsForURL(cfURL! as CFURL, CTFontManagerScope.process, nil)
+        if let cfURL = Bundle.main.url(forResource: "fffforward", withExtension: "ttf") {
+            let _ = CTFontManagerRegisterFontsForURL(cfURL as CFURL, CTFontManagerScope.process, nil)
+        }
         
         ZStack {
-            Color(UIColor(named: "bg_white")!).ignoresSafeArea()
+            // BACKGROUND
+            ForEach(0..<vc.cubePhases.count, id: \.self) { index in
+                GeometryReader { geometry in
+                    PhaseBackgroundView(color: vc.cubePhases[index].backgroundColor)
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .offset(x: CGFloat(index) * geometry.size.width)
+                }
+            }
+            .offset(x: -(backgroundOffset) * UIScreen.main.bounds.width)
+            .onChange(of: vc.currentPhaseIndex) { newValue in
+                withAnimation(.linear(duration: 2)) {
+                    print("NOVA FASE: \(newValue)")
+                    backgroundOffset = CGFloat(newValue)
+                }
+            }
+            
             
             // MARK: - TEXTOS
             OnboardingInformationView(textNumber: !vc.readOnBoardingText1 ? 1 : !vc.readOnBoardingText2 ? 2 : 3)
                 .opacity(onboardingTextOpacity)
+            PhasesView(vc: vc)
+                .opacity(uiPhasesOpacity)
             
             // MARK: - CUBO
             CubeView(viewController: vc)
                 .background(
                     vc.readOnBoardingText2
                     ? AnyView(SquaresViewFilled(scale: bgHoleScale, numOfSquares: 5).opacity(bgHoleOpacity))
-                        : AnyView(SquaresViewStroke(scale: bgLinesScale, numOfSquares: 6))
+                    : AnyView(SquaresViewStroke(scale: bgLinesScale, numOfSquares: 6))
                 )
                 .saturation(saturationScene)
                 .blur(radius: isGlitching ? 5 : 0)
                 .rotationEffect(isGlitching ? .degrees(180) : .zero)
-            
-            PhasesView(vc: vc)
-                .opacity(uiPhasesOpacity)
             
             Button("PULAR") {
                 vc.moveText(text1: vc.textNode01!, text2: vc.textNode02!, by: SCNVector3(0, 0, 50), duration: 1)
@@ -212,6 +222,11 @@ struct ContentView: View {
                     vc.startFirstAnimation()
                     bgHoleScale = 10
                 }
+                // after 5 seconds the "hole" disappears
+                DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                    bgHoleOpacity = 0
+                }
+
             }
             
             DispatchQueue.main.asyncAfter(deadline: .now() + 8) { // 8S ORIGINAL
@@ -242,10 +257,10 @@ struct ContentView: View {
         // CHANGE OF NUM OF MOVEMENTS
         .onChange(of: vc.numOfMovements) { newValue in
             if vc.currentPhaseIndex == 5 {
-                let opacityAnimation = Double(16 - newValue) / 15
-                withAnimation(.easeIn(duration: 1.0)) {
-                    bgHoleOpacity = opacityAnimation
-                }
+//                let opacityAnimation = Double(16 - newValue) / 15
+//                withAnimation(.easeIn(duration: 1.0)) {
+//                    bgHoleOpacity = opacityAnimation
+//                }
                 
                 let saturationAnimation = Double(vc.numOfMovements) / 15
                 withAnimation(.easeIn(duration: 1.0)) {
