@@ -2,8 +2,8 @@ import SwiftUI
 import SceneKit
 
 struct PhasesView: View {
-    @ObservedObject private var vc: ViewController
-    @State private var cubeBackgroundColor: Color = .clear
+    @EnvironmentObject var vc: ViewController
+    
     @State private var titleLabel: String = ""
     @State private var subtitleLabel: String = ""
     @State private var actionLabel: String = ""
@@ -13,27 +13,19 @@ struct PhasesView: View {
 
     @State private var titleOffsetX: CGFloat = -UIScreen.main.bounds.width
     @State private var subtitleOffsetX: CGFloat = UIScreen.main.bounds.width
+    @State private var textColor: Color = AppColor.bg_white.color
     
-    // phase 7
-    @State private var finishedRotation = true
-    @State private var buttonPhase7Opacity: Double = 0.0
-
     
-    init(vc : ViewController) {
-        self.vc = vc
-    }
     
     var body: some View {
-
         let cfURL = Bundle.main.url(forResource: "fffforward", withExtension: "ttf")
         let _ = CTFontManagerRegisterFontsForURL(cfURL! as CFURL, CTFontManagerScope.process, nil)
-        // INFORMATION
         
         VStack (spacing: 20){
             /// Title
             Text(titleLabel)
                 .font(Font.custom("fffforward", size: 50))
-                .foregroundStyle(.white)
+                .foregroundStyle(textColor)
                 .opacity(headerOpacity)
                 //.offset(x: titleOffsetX) // Adicionando deslocamento horizontal
 
@@ -42,74 +34,51 @@ struct PhasesView: View {
                 .font(.system(size: 25))
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: UIScreen.main.bounds.width / 1.2)
-                .foregroundStyle(.white)
+                .foregroundStyle(AppColor.bg_white.color)
                 .opacity(headerOpacity)
                 //.offset(x: subtitleOffsetX) // Adicionando deslocamento horizontal
 
-            
             Spacer()
 
             /// Action Label
             VStack(spacing: 10) {
                 Text(actionLabel)
-                    .font(Font.custom("fffforward", size: 20))
-                    .foregroundStyle(.white)
+                    .font(Font.custom("fffforward", size: 25))
+                    .foregroundStyle(textColor)
                     .opacity(actionLabelOpacity)
                     .padding(.bottom, 100)
-                //Text("\(vc.numOfMovements) / \(vc.currentPhase.movementsRequired)")
+                Text("\(vc.numOfMovements) / \(vc.currentPhase?.movementsRequired ?? 0)")
+                    .font(Font.custom("fffforward", size: 20))
+                    .foregroundStyle(textColor)
+                    .opacity(actionLabelOpacity)
             }
             
         }
         .padding()
         
-        // Button phase 7
-        
-        VStack {
-            Button {
-                if finishedRotation && vc.numOfMovementsPhase7 < 20 {
-                    finishedRotation = false
-                    rotateIceLayer(axis: SCNVector3(0, 1, 0), negative: false, cube: vc.rubiksCube, root: vc.rootNode) {
-                        vc.numOfMovementsPhase7 += 1
-                        finishedRotation = true
-                    }
-                }
-            } label: {
-                ZStack {
-                    Rectangle()
-                        .frame(width: 320, height: 120)
-                        .foregroundStyle(Color(UIColor(named: "color_darkerGray")!))
-                    Text("Persista")
-                        .font(Font.custom("fffforward", size: 25))
-                        .foregroundStyle(.white)
-                }
-            }
-            .position(x: (UIScreen.main.bounds.width / 2), y: UIScreen.main.bounds.height - 200 )
-            
-            Text("\(vc.numOfMovementsPhase7) / 20")
-                .font(Font.custom("fffforward", size: 25))
-                .foregroundStyle(.white)
-        }.opacity(buttonPhase7Opacity)
         
        
         
         // MARK: - ON APPEAR
         .onAppear {
-            cubeBackgroundColor = vc.cubePhases.isEmpty ? .gray : vc.currentPhase.backgroundColor
-            titleLabel = vc.cubePhases.isEmpty ? "empty" : vc.currentPhase.title
-            subtitleLabel = vc.cubePhases.isEmpty ? "empty" : vc.currentPhase.subtitle
-            actionLabel = vc.cubePhases.isEmpty ? "empty" : vc.currentPhase.actionLabel
+            titleLabel = vc.cubePhases.isEmpty ? "empty" : vc.currentPhase!.title
+            subtitleLabel = vc.cubePhases.isEmpty ? "empty" : vc.currentPhase!.subtitle
+            actionLabel = vc.cubePhases.isEmpty ? "empty" : vc.currentPhase!.actionLabel
         }
         
         // MARK: - ON CHANGE OF
         .onChange(of: vc.currentPhaseIndex) { newPhase in
-            withAnimation(.snappy(duration: 1.0)) {
-                cubeBackgroundColor = vc.cubePhases.isEmpty ? Color.gray : vc.currentPhase.backgroundColor
+            if newPhase == 5 {
+                withAnimation(.easeInOut(duration: 5)) {
+                    textColor = .black
+                }
             }
             
-            //withAnimation(.smooth(duration: 2.0)) {
-                titleLabel = vc.cubePhases.isEmpty ? "empty" : vc.currentPhase.title
-                actionLabel = vc.cubePhases.isEmpty ? "empty" : vc.currentPhase.actionLabel
-                subtitleLabel = vc.cubePhases.isEmpty ? "empty" : vc.currentPhase.subtitle
+            
+            //withAnimation(.easeInOut(duration: 2)) {
+            titleLabel = vc.cubePhases.isEmpty ? "empty" : vc.currentPhase!.title
+            actionLabel = vc.cubePhases.isEmpty ? "empty" : vc.currentPhase!.actionLabel
+            subtitleLabel = vc.cubePhases.isEmpty ? "empty" : vc.currentPhase!.subtitle
                 
             //}
             
@@ -136,11 +105,6 @@ struct PhasesView: View {
                 }
             }
 
-            if newPhase == 7 {
-                withAnimation(.easeIn(duration: 2.0)) {
-                    buttonPhase7Opacity = 1
-                }
-            }
         }
     }
 }

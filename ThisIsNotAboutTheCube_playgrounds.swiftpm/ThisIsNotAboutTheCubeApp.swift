@@ -9,9 +9,12 @@ import SwiftUI
 
 @main
 struct ThisIsNotAboutTheCubeApp: App {
+    var viewController = ViewController()
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(viewController)
         }
     }
 }

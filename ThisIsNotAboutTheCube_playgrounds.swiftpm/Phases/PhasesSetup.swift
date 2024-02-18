@@ -25,7 +25,7 @@ func setupLights(camera: SCNNode, root: SCNNode) {
     let light_Ambient = SCNLight()
     light_Ambient.type = .ambient
     light_Ambient.color = UIColor.white
-    light_Ambient.intensity = 10
+    light_Ambient.intensity = 50
     let lightNode_Ambient = SCNNode()
     lightNode_Ambient.light = light_Ambient
     root.addChildNode(lightNode_Ambient)

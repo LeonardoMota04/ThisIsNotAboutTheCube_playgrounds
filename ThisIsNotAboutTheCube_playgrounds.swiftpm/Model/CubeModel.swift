@@ -24,8 +24,9 @@ class RubiksCube: SCNNode {
     
     var cubeWidth: CGFloat = 1
     var spaceBetweenCubes:Float = 0.0
-    let colors:[UIColor] = [.orange, .green, .red, .blue, .yellow, .white]
+    //let colors:[UIColor] = [.orange, .green, .red, .blue, .yellow, .white]
     var cubeGeometry: SCNBox
+    var isFake: Bool = false
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
@@ -33,7 +34,7 @@ class RubiksCube: SCNNode {
     
     override init() {
         self.cubeGeometry = SCNBox(width: 0, height: 0, length: 0, chamferRadius: 0)
-
+        
         super.init()
         
         createCube()
@@ -179,14 +180,95 @@ class RubiksCube: SCNNode {
         return false
     }
     
+    func resetCubeColors() {
+        let greenMaterial = SCNMaterial()
+        greenMaterial.diffuse.contents = UIColor.green
+        
+        let redMaterial = SCNMaterial()
+        redMaterial.diffuse.contents = UIColor.red
+        
+        let blueMaterial = SCNMaterial()
+        blueMaterial.diffuse.contents = UIColor.blue
+        
+        let yellowMaterial = SCNMaterial()
+        yellowMaterial.diffuse.contents = UIColor.yellow
+        
+        let whiteMaterial = SCNMaterial()
+        whiteMaterial.diffuse.contents = UIColor.white
+        
+        let orangeMaterial = SCNMaterial()
+        orangeMaterial.diffuse.contents = UIColor.orange
+        
+        let blackMaterial = SCNMaterial()
+        blackMaterial.diffuse.contents = UIColor.black
+        
+        var materialArray: [SCNMaterial] = []
+        
+        for i in 0..<2 {
+            for j in 0..<2 {
+                for k in 0..<2 {
+                    if i == 0 && j == 0 {
+                        materialArray = (k % 2 == 0)
+                            ? [blackMaterial, blackMaterial, blueMaterial, orangeMaterial, blackMaterial, yellowMaterial]
+                            : [blackMaterial, redMaterial, blueMaterial, blackMaterial, blackMaterial, yellowMaterial]
+                    }
+                    if i == 0 && j == 0 {
+                        materialArray = (k % 2 == 0)
+                        ? [blackMaterial, blackMaterial, blueMaterial, orangeMaterial, blackMaterial, yellowMaterial]
+                        : [blackMaterial, redMaterial, blueMaterial, blackMaterial, blackMaterial, yellowMaterial]
+                    }
+                    if i == 0 && j == 1 {
+                        materialArray = (k % 2 == 0)
+                        ? [blackMaterial, blackMaterial, blueMaterial, orangeMaterial, whiteMaterial, blackMaterial]
+                        : [blackMaterial, redMaterial, blueMaterial, blackMaterial, whiteMaterial, blackMaterial]
+                    }
+                    if i == 1 && j == 0 {
+                        materialArray = (k % 2 == 0)
+                        ? [greenMaterial, blackMaterial, blackMaterial, orangeMaterial, blackMaterial, yellowMaterial]
+                        : [greenMaterial, redMaterial, blackMaterial, blackMaterial, blackMaterial, yellowMaterial]
+                    }
+                    if i == 1 && j == 1 {
+                        materialArray = (k % 2 == 0)
+                        ? [greenMaterial, blackMaterial, blackMaterial, orangeMaterial, whiteMaterial, blackMaterial]
+                        : [greenMaterial, redMaterial, blackMaterial, blackMaterial, whiteMaterial, blackMaterial]
+                    }
+                    
+                    _ = "\(i)-\(j)-\(k)"
+                    for node in self.childNodes {
+                        node.geometry?.materials = materialArray
+                    }
+                }
+            }
+        }
+    }
+    
     func changeCubeTexture() {
         print("chamado!")
         
         let iceMaterial = SCNMaterial()
         iceMaterial.diffuse.contents = (UIImage(named: "Ice"))
+        if let iceTexture = UIImage(named: "Ice") {
+                let iceMaterial = SCNMaterial()
+                iceMaterial.diffuse.contents = iceTexture
+                iceMaterial.diffuse.wrapS = .repeat
+                iceMaterial.diffuse.wrapT = .repeat
+                iceMaterial.isDoubleSided = true
+                
+                for node in self.childNodes {
+                    node.geometry?.materials = [iceMaterial]
+                }
+            }
         
         for node in self.childNodes {
             node.geometry?.materials = [iceMaterial]
+        }
+    }
+    func changeCubeTextureToRed() {
+        let redMaterial = SCNMaterial()
+        redMaterial.diffuse.contents = UIColor.red
+        
+        for node in self.childNodes {
+            node.geometry?.materials = [redMaterial]
         }
     }
     
