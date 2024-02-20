@@ -65,6 +65,7 @@ class ViewController: UIViewController, ObservableObject {
     var movementsToPassTutorial: Int = 3
     @Published var readOnBoardingText1: Bool = false
     @Published var readOnBoardingText2: Bool = false
+    
     var cameraIsMoving: Bool = false
     var canRotateCamera: Bool = true
     
@@ -78,8 +79,9 @@ class ViewController: UIViewController, ObservableObject {
     // PHASE 2
     var rotatedNodesPhase2: [[SCNNode]] = []
     
-    // PHASE 7
-    @Published var numOfMovementsPhase7: Int = 0
+    // PHASE 5
+    @Published var readText1: Bool = false
+    @Published var readText2: Bool = false
     
     
     // MARK: - DIDLOAD
@@ -96,17 +98,23 @@ class ViewController: UIViewController, ObservableObject {
     func setupCurrentPhase() {
         switch currentPhaseIndex {
             case 0:
+            // FIRST INTERACTION
             if !finishedOnboarding {
                 print("OnBoarding")
                 createRubiksCube()
                 setupCamera()
                 setupLabel(camera: self.cameraNode, root: self.rootNode)
                 audioManager.startBackgroundMusic()
-            } else {
                 
-                print("clareca")
-                self.startLastAnimation()
-                moveText(text1: textNode01!, text2: textNode02!, by: SCNVector3(0.5, 8, -50), duration: 5)
+            // RETURNED INTERACTIONS
+            } else {
+                print("entrei aqui")
+                self.rubiksCube3.removeFromParentNode() // remove cubo falso
+                createRubiksCube() // adiciona cubo normal
+                self.startLastAnimation() // zoom out
+                moveText(text1: textNode01!, text2: textNode02!, by: SCNVector3(0.5, 8, -50), duration: 5) // volta
+                //moveText(text1: textNode01!, text2: textNode02!, by: SCNVector3(1.5, 24, -150), duration: 5) // voltabotao pular
+
                 firstEverTouch = false
             }
             case 1:
@@ -171,24 +179,19 @@ class ViewController: UIViewController, ObservableObject {
                     moveToNextPhase()
                     numOfMovements = 0
                 }
+            // Camera / Removes cube and adds new one solved / Returns to phase 0
             case 5:
                 if numOfMovements == requiredMovementsForCurrentPhase {
                     self.canRotateCube = false
                     self.canRotateCamera = false
-                    //self.startFirstAnimation()
-                    self.adjustCameraPositionPhase05()
+                    self.currentPhaseIndex = 0
+                    self.numOfMovements = 0
+                    self.adjustCameraPositionPhase05_1()
                     self.rubiksCube.removeFromParentNode()
                     // places new cube
                     rubiksCube3 = RubiksCube()
-                    rubiksCube3.position = SCNVector3Make(0, 0, -0)
+                    rubiksCube3.position = SCNVector3Make(0, 0, 0)
                     rootNode.addChildNode(rubiksCube3)
-                    
-//                    DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-//                        self.currentPhaseIndex = 0
-//                        self.setupCurrentPhase()
-//                        self.numOfMovements = 0
-//                    }
-                    
                 }
                 
             
@@ -320,26 +323,51 @@ class ViewController: UIViewController, ObservableObject {
         SCNTransaction.commit()
     }
     
-    func adjustCameraPositionPhase05() {
+    // MARK: - ULTIMA FASE
+    // MEIO + DIREITA
+    func adjustCameraPositionPhase05_1() {
         // brings to center
         SCNTransaction.begin()
         SCNTransaction.animationDuration = 5
         SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
 
-        self.cameraNode.pivot = SCNMatrix4MakeTranslation(0, 0, -10)
-        self.cameraNode.eulerAngles = SCNVector3(-0.5, 0.75, 0)
+        self.cameraNode.eulerAngles = SCNVector3(0, 0, 0)
         self.cameraIsMoving = true
         SCNTransaction.completionBlock = { [self] in
             // right
             SCNTransaction.begin()
             SCNTransaction.animationDuration = 3
             SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            cameraNode.position = SCNVector3Make(-3, 0, 3)
+            self.cameraNode.position.x -= 5.0
         
             SCNTransaction.commit()
         }
         SCNTransaction.commit()
     }
+    // ESQUERDA
+    func adjustCameraPositionPhase05_2() {
+        SCNTransaction.begin()
+        SCNTransaction.animationDuration = 3
+        SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        self.cameraNode.position.x += 10.0
+        
+        SCNTransaction.commit()
+    }
+    // CENTRO
+    func adjustCameraPositionPhase05_3() {
+        // ANIMATION BEGINS
+        SCNTransaction.begin()
+        SCNTransaction.animationDuration = 1
+        SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeIn)
+        self.cameraNode.position.x -= 5.0
+        
+        SCNTransaction.completionBlock = {
+            self.setupCurrentPhase()
+        }
+        
+        SCNTransaction.commit()
+    }
+    
     
     // LAST ANIMATION (ZOOM OUT)
     func startLastAnimation() {
@@ -352,12 +380,13 @@ class ViewController: UIViewController, ObservableObject {
         self.cameraIsMoving = true
         SCNTransaction.completionBlock = {
             //if !self.readOnBoardingText2 {
-                self.cameraIsMoving = false
+                //self.cameraIsMoving = false
             //}
         }
         SCNTransaction.commit()
     }
     
+    // FIRST ANIMATION (ZOOM IN)
     func startFirstAnimation () {
         // FIRST ANIMATION (ZOOM IN)
             SCNTransaction.begin()
@@ -373,6 +402,7 @@ class ViewController: UIViewController, ObservableObject {
             SCNTransaction.commit()
     }
     
+    // centro
     func startSecondAnimation() {
         // ANIMATION BEGINS
         SCNTransaction.begin()
@@ -454,13 +484,12 @@ class ViewController: UIViewController, ObservableObject {
                     // only if is the first time interacting with the scene
                 if !finishedOnboarding {
                     startFirstAnimation() // Zoom in
-                    //moveText(text1: textNode01, text2: textNode02, by: SCNVector3(-1, 8, 50), duration: 5)
                     moveText(text1: textNode01, text2: textNode02, by: SCNVector3(-0.5, -8, 50), duration: 5)
                     firstEverTouch = true
                     // is the return of the user to the beggining
                 } else {
-                    startFirstAnimation()
-                    moveText(text1: textNode01, text2: textNode02, by: SCNVector3(-0.5, -8, 50), duration: 5)
+                    startFirstAnimation() // zoom in
+                    moveText(text1: textNode01, text2: textNode02, by: SCNVector3(-0.5, -8, 50), duration: 5) // zoom in
                     firstEverTouch = true
                     moveToNextPhase()
                 }
@@ -800,7 +829,7 @@ class ViewController: UIViewController, ObservableObject {
     func moveText(text1: SCNNode, text2: SCNNode, by: SCNVector3, duration: TimeInterval) {
         print("moveu")
         let moveAction = SCNAction.move(by: by, duration: duration)
-        moveAction.timingMode = .easeIn
+        moveAction.timingMode = .easeInEaseOut
         text1.runAction(moveAction); text2.runAction(moveAction)
     }
 

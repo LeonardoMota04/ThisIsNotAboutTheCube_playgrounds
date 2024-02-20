@@ -10,7 +10,6 @@ struct ContentView: View {
     private let loadingInterval: TimeInterval = 0.2
     @State private var pressToStartLabel = "Press to start"
     @State private var onboardingTextOpacity: Double = 0.0 // textos
-    //@State private var buttonOpacity: Double = 0.0
     @State private var bgLinesScale: Double = 1.0
     @State private var bgHoleScale: Double = 0.0
     @State private var bgHoleOpacity: Double = 1.0
@@ -22,6 +21,8 @@ struct ContentView: View {
     @State private var isGlitching = false
     /// 4
     @State private var saturationScene: Double = 1
+    /// 5
+    @State private var lastViewOpacity: Double = 0.0
     
     var body: some View {
         
@@ -36,10 +37,8 @@ struct ContentView: View {
                 // background color
                 PhaseBackgroundView(vc: vc)
                     .ignoresSafeArea()
-            
-                // phases view
-                PhasesView()
-                    .opacity(uiPhasesOpacity)
+                
+                
                 
                 // lamp
                 LampView()
@@ -55,14 +54,21 @@ struct ContentView: View {
                     .saturation(saturationScene)
                     //.blur(radius: isGlitching ? 5 : 0)
                     //.rotationEffect(isGlitching ? .degrees(45) : .zero)
-                
+                // phases view
+                PhasesView()
+                    .opacity(uiPhasesOpacity)
                 // onboarding text
                 OnboardingInformationView()
                     .opacity(onboardingTextOpacity)
                 
+                LastView()
+                    .ignoresSafeArea()
+                    .opacity(lastViewOpacity)
+                
                 // PULAR -------------------------
                 Button("Pular") {
-                    vc.moveText(text1: vc.textNode01!, text2: vc.textNode02!, by: SCNVector3(0, 0, 50), duration: 1)
+                    vc.moveText(text1: vc.textNode01!, text2: vc.textNode02!, by: SCNVector3(-0.5, -8, 50), duration: 1)
+
                     vc.readOnBoardingText2 = true
                     
                     if vc.currentPhaseIndex != 5 {
@@ -111,18 +117,10 @@ struct ContentView: View {
                     }
                 // reinitiation of the scene
                 } else {
-                    if newValue == false {
-                        bgLinesScale = 0;
-                        withAnimation(.easeInOut(duration: 6.0)) {
-                            bgLinesScale = 8
-                        }
-                    } else {
-                        bgHoleScale = 0; bgHoleOpacity = 1
-                        withAnimation(.easeInOut(duration: 6.0)) {
-                            bgHoleScale = 8
-                        }
+                    bgHoleScale = 0; bgHoleOpacity = 1
+                    withAnimation(.easeInOut(duration: 6.0)) {
+                        bgHoleScale = 8
                     }
-                    
                 }
             }
         // MARK: - FINISHED ONBOARDING
@@ -157,14 +155,31 @@ struct ContentView: View {
         // MARK: - CHANGED PHASE
             .onChange(of: vc.currentPhaseIndex) { newValue in
                 
+                if newValue == 0 { // voltou ao inicio
+                    withAnimation(.easeIn(duration: 2.0)) {
+                        uiPhasesOpacity = 0
+                    }
+                    print("oioioioioioio")
+                    withAnimation(.easeIn(duration: 2.0).delay(6)) {
+                        lastViewOpacity = 1
+                    }
+                }
+                
                 if newValue == 1 {
-                    withAnimation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true)) {
-                        isGlitching.toggle()
-                    }
-                } else {
-                    withAnimation(.easeInOut(duration: 0.5)) {
-                        isGlitching = false
-                    }
+                    print("TO AQUI POORRAAAAAAAA GREMIO")
+                    //if vc.finishedOnboarding {
+                        withAnimation(.easeIn(duration: 2.0)) {
+                            lastViewOpacity = 0
+                            uiPhasesOpacity = 1
+                            // after 5 seconds the "hole" disappears
+                            //DispatchQueue.main.asyncAfter(deadline: .now() + 7) {
+                                bgHoleOpacity = 0
+                                withAnimation(.easeIn(duration: 6.0)) {
+                                    lampOpacity = 1
+                                }
+                            //}
+                        }
+                    //}
                 }
                 
                 if newValue == 4 {

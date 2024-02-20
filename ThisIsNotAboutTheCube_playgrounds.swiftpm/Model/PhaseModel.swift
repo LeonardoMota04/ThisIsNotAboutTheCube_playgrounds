@@ -63,14 +63,14 @@ struct PhaseModel {
                        subtitle: "",
                        actionLabel: "Nothing will be like before...",
                        backgroundColor: .black,
-                       movementsRequired: 10),
+                       movementsRequired: 2),
             /// 5
             PhaseModel(phaseNumber: 5, 
                        title: "Acceptance",
                        subtitle: "",
                        actionLabel: "It is going to be hard but I have to keep moving...",
                        backgroundColor: AppColor.bg_white.color,
-                       movementsRequired: 15),
+                       movementsRequired: 2),
             
     ]
 

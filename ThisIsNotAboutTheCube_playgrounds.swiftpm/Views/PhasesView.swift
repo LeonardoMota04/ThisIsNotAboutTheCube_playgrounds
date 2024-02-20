@@ -27,6 +27,7 @@ struct PhasesView: View {
                 .font(Font.custom("fffforward", size: 50))
                 .foregroundStyle(textColor)
                 .opacity(headerOpacity)
+                //.opacity(headerOpacity)
                 //.offset(x: titleOffsetX) // Adicionando deslocamento horizontal
 
             /// subtitle
@@ -61,6 +62,7 @@ struct PhasesView: View {
         
         // MARK: - ON APPEAR
         .onAppear {
+            print("APARECEU A PHASES VIEW")
             titleLabel = vc.cubePhases.isEmpty ? "empty" : vc.currentPhase!.title
             subtitleLabel = vc.cubePhases.isEmpty ? "empty" : vc.currentPhase!.subtitle
             actionLabel = vc.cubePhases.isEmpty ? "empty" : vc.currentPhase!.actionLabel
@@ -71,6 +73,10 @@ struct PhasesView: View {
             if newPhase == 5 {
                 withAnimation(.easeInOut(duration: 5)) {
                     textColor = .black
+                }
+            } else {
+                withAnimation(.easeInOut(duration: 2)) {
+                    textColor = AppColor.bg_white.color
                 }
             }
             
