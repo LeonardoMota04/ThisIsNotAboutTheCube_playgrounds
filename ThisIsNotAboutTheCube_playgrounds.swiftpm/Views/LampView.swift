@@ -1,13 +1,5 @@
-//
-//  SwiftUIView.swift
-//  UIKITCOPIA
-//
-//  Created by Leonardo Mota on 05/12/23.
-//
-
 import SwiftUI
 import SceneKit
-import CoreImage
 
 struct LampView: View {
     @State private var isLightFlashing = false
@@ -15,7 +7,8 @@ struct LampView: View {
     
     var body: some View {
         ZStack {
-            // Luz em forma de triângulo
+            Color.black
+            // triangle light
                 LinearGradient(
                     gradient: Gradient(colors: [.white, .clear]),
                     startPoint: .top,
@@ -31,29 +24,23 @@ struct LampView: View {
                 }
                 .ignoresSafeArea()
         }
-        .saturation(0)
     }
-    // GERA VALORES ALEATORIOS PARA EFEITO DE LUZ PISCANDO
+    // GENERATES RANDOM VALUES FOR FLASHING LIGHTS
     private func updateRandomOpacity() {
-        randomOpacity = Double.random(in: 0...1)
+        randomOpacity = Double.random(in: 0.4...0.8)
     }
 
 }
 
-// MASCARA PARA LUZ EM FORMATO DE TRIANGULO
+// TRIANGLE MASK FOR LIGHT SHAPE
 struct TriangleMask: View {
     var body: some View {
         GeometryReader { geometry in
             Path { path in
-                path.move(to: CGPoint(x: geometry.size.width/2, y: -100))
-                path.addLine(to: CGPoint(x: geometry.size.width, y: geometry.size.height))// / 1.5))
-                path.addLine(to: CGPoint(x: 0, y: geometry.size.height ))/// 1.5))
+                path.move(to: CGPoint(x: geometry.size.width/2, y: -300))
+                path.addLine(to: CGPoint(x: geometry.size.width, y: geometry.size.height))
+                path.addLine(to: CGPoint(x: 0, y: geometry.size.height ))
             }
-            .fill(Color.white)
         }
     }
-}
-
-#Preview {
-    LampView()
 }

@@ -3,11 +3,15 @@ import AVFAudio
 import SceneKit
 
 class ViewController: UIViewController, ObservableObject {
+    // CAMERA
     var currentAngleY: Float = 0
     var currentAngleX: Float = 0
 
+    // LIGHTS
+    var ambientLight: SCNLight = SCNLight()
+    var omniLight: SCNLight = SCNLight()
+    
     // MARK: - VARIABLES
-    // PHASES - published variables for SwiftUI
     @Published var cubePhases: [PhaseModel] = []
     @Published var currentPhaseIndex: Int = 0
     @Published var numOfMovements: Int = 0
@@ -19,7 +23,6 @@ class ViewController: UIViewController, ObservableObject {
         return cubePhases[currentPhaseIndex]
     }
 
-    
     var requiredMovementsForCurrentPhase: Int {
         return currentPhase!.movementsRequired
     }
@@ -37,7 +40,6 @@ class ViewController: UIViewController, ObservableObject {
     var sceneView: SCNView!
     var rootNode: SCNNode!
     var cameraNode: SCNNode!
-    var finalCameraPositionAfterManipulation: SCNVector3?
     var rubiksCube: RubiksCube!
     var rubiksCube2: RubiksCube!
     var rubiksCube3: RubiksCube!
@@ -56,7 +58,7 @@ class ViewController: UIViewController, ObservableObject {
     var tolerance25: Float = 0.025
     
     // onboarding controll
-    var firstEverTouch: Bool = false
+    @Published var firstEverTouch: Bool = false
     var textNode01: SCNNode?
     var textNode02: SCNNode?
     var madeOneFingerMovements: Bool = false
@@ -68,17 +70,7 @@ class ViewController: UIViewController, ObservableObject {
     
     var cameraIsMoving: Bool = false
     var canRotateCamera: Bool = true
-    
-    // AUDIO
-    let audioManager = AudioManager.shared
-    
-    // PHASE 1
-    var rotatedNodesPhase1: [SCNNode] = []
-    //var podePassar1: Bool = false
-    
-    // PHASE 2
-    var rotatedNodesPhase2: [[SCNNode]] = []
-    
+        
     // PHASE 5
     @Published var readText1: Bool = false
     @Published var readText2: Bool = false
@@ -90,7 +82,6 @@ class ViewController: UIViewController, ObservableObject {
         setupScene()
         setupCurrentPhase()
         setupGestureRecognizers()
-        
     }
     
     // MARK: - PHASES
@@ -100,54 +91,45 @@ class ViewController: UIViewController, ObservableObject {
             case 0:
             // FIRST INTERACTION
             if !finishedOnboarding {
-                print("OnBoarding")
                 createRubiksCube()
                 setupCamera()
                 setupLabel(camera: self.cameraNode, root: self.rootNode)
-                audioManager.startBackgroundMusic()
                 
             // RETURNED INTERACTIONS
             } else {
-                print("entrei aqui")
                 self.rubiksCube3.removeFromParentNode() // remove cubo falso
                 createRubiksCube() // adiciona cubo normal
                 self.startLastAnimation() // zoom out
                 moveText(text1: textNode01!, text2: textNode02!, by: SCNVector3(0.5, 8, -50), duration: 5) // volta
-                //moveText(text1: textNode01!, text2: textNode02!, by: SCNVector3(1.5, 24, -150), duration: 5) // voltabotao pular
-
-                firstEverTouch = false
             }
-            case 1:
-                print("fase 1")
-                shuffleCube(times: 25) {
-                    setupLights(camera: self.cameraNode, root: self.rootNode)
-                    self.canRotateCube = true
-                    self.cameraIsMoving = false
-                }
-                
-            // ANGER
-            case 2:
-                print("fase 2")
-                //self.rubiksCube.changeCubeTexture()
             
             // BARGAINING
             case 3:
-                print("fase 3")
                 canRotateCamera = false
-                
                 self.bargainingAnimationCamera()
 
             case 4:
-                print("fase 4")
-                canRotateCamera = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    self.canRotateCube = true
+                    self.canRotateCamera = true
+                    self.cameraIsMoving = false
+                }
                 rubiksCube2.removeFromParentNode()
             case 5:
-                print("fase 5")
-                setupVibrantLights(root: self.rootNode)
-
-            default:
-                print("fase fora")
+                adjustDefaultLightning(intensityOmini: 0, intensityAmbient: 1000, omniLight: omniLight, ambientLight: ambientLight)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    self.canRotateCube = true
+                    self.canRotateCamera = true
+                    self.cameraIsMoving = false
+                }
             
+            // 1 / 2
+            default:
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    self.canRotateCube = true
+                    self.canRotateCamera = true
+                    self.cameraIsMoving = false
+                }
         }
     }
     // MARK: - EACH PHASE INTERACTIONS
@@ -155,29 +137,41 @@ class ViewController: UIViewController, ObservableObject {
         switch currentPhaseIndex {
             case 0:
                 if numOfMovements == movementsToPassTutorial {
-                        self.madeOneFingerMovements = true
-                        self.canRotateCube = false
-                        numOfMovements = 0
+                    self.madeOneFingerMovements = true
+                    self.canRotateCube = false
+                    self.numOfMovements = 0
                 }
             
             case 2:
             self.denialAnimationCamera()
                 if numOfMovements == requiredMovementsForCurrentPhase {
+                    self.canRotateCube = false
+                    self.canRotateCamera = false
                     moveToNextPhase()
-                    numOfMovements = 0
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                        self.numOfMovements = 0
+                    }
                 }
             
             case 3:
             self.adjustCameraPositionPhase03()
             if numOfMovements == requiredMovementsForCurrentPhase {
+                self.canRotateCube = false
+                self.canRotateCamera = false
                 moveToNextPhase()
-                numOfMovements = 0
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                    self.numOfMovements = 0
+                }
             }
             
             case 1, 4:
                 if numOfMovements == requiredMovementsForCurrentPhase {
+                    self.canRotateCube = false
+                    self.canRotateCamera = false
                     moveToNextPhase()
-                    numOfMovements = 0
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                        self.numOfMovements = 0
+                    }
                 }
             // Camera / Removes cube and adds new one solved / Returns to phase 0
             case 5:
@@ -194,28 +188,24 @@ class ViewController: UIViewController, ObservableObject {
                     rootNode.addChildNode(rubiksCube3)
                 }
                 
-            
             default:
-                print("fase fora")
+               return
         }
     }
     
     func moveToNextPhase() {
         if currentPhaseIndex < cubePhases.count {
-            //DispatchQueue.main.async { [self] in
-                currentPhaseIndex += 1
-                setupCurrentPhase()
-            //}
+            currentPhaseIndex += 1
+            setupCurrentPhase()
         }
     }
-    // PHASES ===========================================================
     
     // MARK: - SCENE
     func setupScene() {
         screenWidth = Float(screenSize.width)
         screenHeight = Float(screenSize.height)
         
-        /// sceneview
+        // sceneview
         sceneView = SCNView(frame: self.view.frame)
         sceneView.scene = SCNScene()
         sceneView.backgroundColor = .clear
@@ -224,7 +214,10 @@ class ViewController: UIViewController, ObservableObject {
         self.view.addSubview(sceneView)
         rootNode = sceneView.scene!.rootNode
         
-        /// setup all phases
+        // light
+        sceneView.autoenablesDefaultLighting = false
+        
+        // setup all phases
         DispatchQueue.main.async {
             self.cubePhases = PhaseModel.phases
         }
@@ -235,9 +228,6 @@ class ViewController: UIViewController, ObservableObject {
         rubiksCube = RubiksCube()
         rootNode.addChildNode(rubiksCube)
     }
-
-    // MARK: - FLOATING ANIMATION (PHASE)
-    
 
     // MARK: - CAMERA
     func setupCamera() {
@@ -277,7 +267,6 @@ class ViewController: UIViewController, ObservableObject {
 
         self.cameraNode.pivot = SCNMatrix4MakeTranslation(0, 0, -10)
         self.cameraNode.eulerAngles = SCNVector3(-0.5, 0.75, 0)
-        self.cameraIsMoving = true
         SCNTransaction.completionBlock = { [self] in
             
                 // left
@@ -287,8 +276,6 @@ class ViewController: UIViewController, ObservableObject {
                 cameraNode.position = SCNVector3Make(3, 0, -3)
             
             SCNTransaction.completionBlock = { [self] in
-                cameraIsMoving = false
-                
                 // places new cube
                 rubiksCube2 = RubiksCube()
                 rubiksCube2.opacity = 0.0
@@ -299,6 +286,11 @@ class ViewController: UIViewController, ObservableObject {
                 SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
                 rubiksCube2.opacity = 1.0
                 rubiksCube2.position = SCNVector3Make(6, 0, -6)
+                
+                SCNTransaction.completionBlock = {
+                    self.canRotateCube = true
+                }
+                
                 SCNTransaction.commit()
             }
             
@@ -324,7 +316,7 @@ class ViewController: UIViewController, ObservableObject {
     }
     
     // MARK: - ULTIMA FASE
-    // MEIO + DIREITA
+    // CENTER + RIGHT
     func adjustCameraPositionPhase05_1() {
         // brings to center
         SCNTransaction.begin()
@@ -344,7 +336,8 @@ class ViewController: UIViewController, ObservableObject {
         }
         SCNTransaction.commit()
     }
-    // ESQUERDA
+    
+    // LEFT
     func adjustCameraPositionPhase05_2() {
         SCNTransaction.begin()
         SCNTransaction.animationDuration = 3
@@ -353,7 +346,8 @@ class ViewController: UIViewController, ObservableObject {
         
         SCNTransaction.commit()
     }
-    // CENTRO
+    
+    // CENTER
     func adjustCameraPositionPhase05_3() {
         // ANIMATION BEGINS
         SCNTransaction.begin()
@@ -379,9 +373,7 @@ class ViewController: UIViewController, ObservableObject {
         self.cameraNode.eulerAngles = SCNVector3(0, 0, 0)
         self.cameraIsMoving = true
         SCNTransaction.completionBlock = {
-            //if !self.readOnBoardingText2 {
-                //self.cameraIsMoving = false
-            //}
+            self.firstEverTouch = false
         }
         SCNTransaction.commit()
     }
@@ -402,7 +394,7 @@ class ViewController: UIViewController, ObservableObject {
             SCNTransaction.commit()
     }
     
-    // centro
+    // CENTER
     func startSecondAnimation() {
         // ANIMATION BEGINS
         SCNTransaction.begin()
@@ -420,7 +412,7 @@ class ViewController: UIViewController, ObservableObject {
         SCNTransaction.commit()
     }
     
-    // esquerda
+    // LEFT
     func startThirdAnimation() {
         SCNTransaction.begin()
         SCNTransaction.animationDuration = 2.0
@@ -430,46 +422,36 @@ class ViewController: UIViewController, ObservableObject {
         SCNTransaction.commit()
     }
 
-    // direitassa
+    // ALL RIGHT
     func startFourthAnimation() {
         SCNTransaction.begin()
         SCNTransaction.animationDuration = 2.0
         SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
             self.cameraNode.position.x -= 10.0
 
-
         SCNTransaction.commit()
     }
     
+    // LEFT
     func startFifthAnimation() {
         SCNTransaction.begin()
         SCNTransaction.animationDuration = 2.0
         SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
         self.cameraNode.position.x += 5.0
+        
+        SCNTransaction.completionBlock = {
+            self.startFirstAnimation()
+        }
 
         SCNTransaction.commit()
     }
     
-    
-    func createCenterBall() {
-        let ballGeometry = SCNSphere(radius: 0.1)
-        let ballNode = SCNNode(geometry: ballGeometry)
-        let redMaterial = SCNMaterial()
-        redMaterial.diffuse.contents = UIColor.red
-        ballGeometry.materials = [redMaterial]
-        ballNode.position = SCNVector3(0,0,0)
-        rootNode.addChildNode(ballNode)
-    }
-    
-    
-
     // MARK: - GESTURE RECOGNIZERS
     func setupGestureRecognizers() {
         let panRecognizer = UIPanGestureRecognizer(target: self, action: #selector(sceneTouched(_:)))
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(sceneTapped(_:)))
         sceneView.gestureRecognizers = [panRecognizer, tapGesture]
     }
-    
     
     @objc
     func sceneTapped(_ gestureRecognizer: UITapGestureRecognizer) {
@@ -488,10 +470,18 @@ class ViewController: UIViewController, ObservableObject {
                     firstEverTouch = true
                     // is the return of the user to the beggining
                 } else {
-                    startFirstAnimation() // zoom in
+                    shuffleCube(times: 20) {}
+                    
+                    startFirstAnimation()
                     moveText(text1: textNode01, text2: textNode02, by: SCNVector3(-0.5, -8, 50), duration: 5) // zoom in
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [self] in
+                    setupLowLights(ambientLight: ambientLight, omniLight: omniLight, root: rootNode, camera: cameraNode)
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 6) { [self] in
+                        moveToNextPhase()
+                    }
                     firstEverTouch = true
-                    moveToNextPhase()
                 }
                 
             }
@@ -514,13 +504,6 @@ class ViewController: UIViewController, ObservableObject {
         
         // MARK: - 2 FINGERS: CAMERA
         if recognizer.numberOfTouches == 2 && !cameraIsMoving && canRotateCamera {
-            
-            //currentAngleX += newRotationX
-            //currentAngleY += newRotationY
-            
-            // Optionally, update camera position based on your logic
-            finalCameraPositionAfterManipulation = cameraNode.position
-            
             switch currentPhaseIndex {
             case 0:
                 if self.madeOneFingerMovements {
@@ -536,14 +519,14 @@ class ViewController: UIViewController, ObservableObject {
                         }
                     }
             }
+            // PHASE 1 HAS INVERTED ROTATIONS
             case 1:
                 cameraNode.eulerAngles.x = -(currentAngleX + newRotationX)
                 cameraNode.eulerAngles.y = -(currentAngleY + newRotationY)
-            case 2...9:
+            default:
                 cameraNode.eulerAngles.x = currentAngleX + newRotationX
                 cameraNode.eulerAngles.y = currentAngleY + newRotationY
-            default:
-                break
+                
             }
         } else if recognizer.state == .ended {
             currentAngleX = cameraNode.eulerAngles.x
@@ -566,19 +549,19 @@ class ViewController: UIViewController, ObservableObject {
             
             animationLock = true
             
-            // TOQUE
-            let touch_Location = recognizer.location(in: sceneView) // posicao do toque
-            let projectedOrigin = sceneView.projectPoint(beganPanHitResult.worldCoordinates) // coordenadas do ponto inicial do toque em 3D
+            // TOUCH
+            let touch_Location = recognizer.location(in: sceneView) // touch position
+            let projectedOrigin = sceneView.projectPoint(beganPanHitResult.worldCoordinates) // initial coordinates from initial touch point in 3D
             let estimatedPoint = sceneView.unprojectPoint(SCNVector3( Float(touch_Location.x),
                                                                       Float(touch_Location.y),
                                                                       projectedOrigin.z) )
             
-            // PLANO
+            // PLANE
             var plane = "?"
             var direction = 1
             
-            //
-            let xDiff = estimatedPoint.x - beganPanHitResult.worldCoordinates.x // movimento relativo desde o inicio do toque ate o momento atual
+            // DIFFS
+            let xDiff = estimatedPoint.x - beganPanHitResult.worldCoordinates.x // RELATIVE MOVEMENT SINCE BEGINING OF TOUCH UNTIL NOW
             let yDiff = estimatedPoint.y - beganPanHitResult.worldCoordinates.y
             let zDiff = estimatedPoint.z - beganPanHitResult.worldCoordinates.z
             
@@ -586,11 +569,9 @@ class ViewController: UIViewController, ObservableObject {
             let absYDiff = abs(yDiff)
             let absZDiff = abs(zDiff)
             
-            // LADO TOCADO
+            // SIDE TOUCHED (NOT ROTATED CUBE SIDE)
             var side:CubeSide!
-            side = selectedCubeSide(hitResult: beganPanHitResult, edgeDistanceFromOrigin: edgeDistance975) //1.475)
-            
-            
+            side = selectedCubeSide(hitResult: beganPanHitResult, edgeDistanceFromOrigin: edgeDistance975)
             
             if side == CubeSide.none {
                 self.animationLock = false
@@ -599,81 +580,55 @@ class ViewController: UIViewController, ObservableObject {
             }
             
             // MARK: - DIRECTION
-            // DIREITA ou ESQUERDA
+            // RIGH ou LEFT
             if side == CubeSide.right || side == CubeSide.left {
                 if absYDiff > absZDiff {
                     plane = "Y"
-                    if side == CubeSide.right {
-                        direction = yDiff > 0 ? 1 : -1
-                    }
-                    else {
-                        direction = yDiff > 0 ? -1 : 1
-                    }
+                    if side == CubeSide.right { direction = yDiff > 0 ? 1 : -1 }
+                    else { direction = yDiff > 0 ? -1 : 1 }
                 }
                 else {
                     plane = "Z"
-                    if side == CubeSide.right {
-                        direction = zDiff > 0 ? -1 : 1
-                    }
-                    else {
-                        direction = zDiff > 0 ? 1 : -1
-                    }
+                    if side == CubeSide.right {  direction = zDiff > 0 ? -1 : 1 }
+                    else { direction = zDiff > 0 ? 1 : -1 }
                 }
             }
             
-            // CIMA ou BAIXO
+            // UP or DOWN
             else if side == CubeSide.up || side == CubeSide.down {
                 if absXDiff > absZDiff {
                     plane = "X"
-                    if side == CubeSide.up {
-                        direction = xDiff > 0 ? -1 : 1
-                    }
-                    else {
-                        direction = xDiff > 0 ? 1 : -1
-                    }
+                    if side == CubeSide.up { direction = xDiff > 0 ? -1 : 1 }
+                    else { direction = xDiff > 0 ? 1 : -1 }
                 }
                 else {
                     plane = "Z"
-                    if side == CubeSide.up {
-                        direction = zDiff > 0 ? 1 : -1
-                    }
-                    else {
-                        direction = zDiff > 0 ? -1 : 1
-                    }
+                    if side == CubeSide.up { direction = zDiff > 0 ? 1 : -1 }
+                    else { direction = zDiff > 0 ? -1 : 1 }
                 }
             }
             
-            // TRÁS ou FRENTE
+            // BACK or FRONT
             else if side == CubeSide.back || side == CubeSide.front {
                 if absXDiff > absYDiff {
                     plane = "X"
-                    if side == CubeSide.back {
-                        direction = xDiff > 0 ? -1 : 1
-                    }
-                    else {
-                        direction = xDiff > 0 ? 1 : -1
-                    }
+                    if side == CubeSide.back { direction = xDiff > 0 ? -1 : 1 }
+                    else { direction = xDiff > 0 ? 1 : -1 }
                 }
                 else {
                     plane = "Y"
-                    if side == CubeSide.back {
-                        direction = yDiff > 0 ? 1 : -1
-                    }
-                    else {
-                        direction = yDiff > 0 ? -1 : 1
-                    }
+                    if side == CubeSide.back { direction = yDiff > 0 ? 1 : -1 }
+                    else { direction = yDiff > 0 ? -1 : 1 }
                 }
             }
             
             // MARK: - ROTATION AXIS && POSITIONS
-            let nodesToRotate =  rubiksCube.childNodes { (child, _) -> Bool in
-                
+            let nodesAdded =  rubiksCube.childNodes { (child, _) -> Bool in
                 // (PLANO Z - DIREITA E ESQUERDA) ou (PLANO X - FRENTE E TRÁS)
                 // --> <--
                 if ((side == CubeSide.right || side == CubeSide.left) && plane == "Z")
                     || ((side == CubeSide.front || side == CubeSide.back) && plane == "X") {
                     self.rotationAxis = SCNVector3(0,1,0) // Y
-                    //print("Z ou X \(child.position.y.nearlyEqual(b: self.beganPanNode.position.y, tolerance: tolerance25))")
                     return child.position.y.isVeryClose(to: self.beganPanNode.position.y, withTolerance: tolerance25)
                 }
                 
@@ -682,10 +637,8 @@ class ViewController: UIViewController, ObservableObject {
                 if ((side == CubeSide.right || side == CubeSide.left) && plane == "Y")
                     || ((side == CubeSide.up || side == CubeSide.down) && plane == "X") {
                     self.rotationAxis = SCNVector3(0,0,1) // Z
-                    //print("\nY ou X \(child.position.z.nearlyEqual(b: self.beganPanNode.position.z, tolerance: tolerance25))")
                     return child.position.z.isVeryClose(to: self.beganPanNode.position.z, withTolerance: tolerance25)
                 }
-                
                 
                 // (PLANO Y - FRENTE E TRÁS) ou (PLANO Z - CIMA E BAIXO)
                 // |
@@ -693,15 +646,12 @@ class ViewController: UIViewController, ObservableObject {
                 if ((side == CubeSide.front || side == CubeSide.back) && plane == "Y")
                     || ((side == CubeSide.up || side == CubeSide.down) && plane == "Z") {
                     self.rotationAxis = SCNVector3(1,0,0) // X
-                    //print("\nY ou Z \(child.position.x.nearlyEqual(b: self.beganPanNode.position.x, tolerance: tolerance25))")
                     return child.position.x.isVeryClose(to: self.beganPanNode.position.x, withTolerance: tolerance25)
                 }
-                
-                
                 return false
             }
             
-            if nodesToRotate.count <= 0 {
+            if nodesAdded.count <= 0 {
                 self.animationLock = false
                 self.beganPanNode = nil
                 return
@@ -710,7 +660,7 @@ class ViewController: UIViewController, ObservableObject {
             // container that holds all nodes to rotate after touch finished
             let container = SCNNode()
             rootNode.addChildNode(container)
-            for nodeToRotate in nodesToRotate {
+            for nodeToRotate in nodesAdded {
                 if currentPhaseIndex != 1 {
                     container.addChildNode(nodeToRotate)
                 }
@@ -722,7 +672,16 @@ class ViewController: UIViewController, ObservableObject {
             var finalRotation_Action: SCNAction = rotation_Action
             
             switch currentPhaseIndex {
-                // DENIAL - reversed
+            // 2: DENIAL - locked
+            case 2:
+                let rotationAngle = CGFloat(direction) * .pi / 4
+                let rotateRightAction = SCNAction.rotate(by: rotationAngle, around: self.rotationAxis, duration: 0.1)
+                let rotateLeftAction = SCNAction.rotate(by: -rotationAngle * 2, around: self.rotationAxis, duration: 0.1)
+                let lockedRotation_Action = SCNAction.sequence([rotateRightAction, rotateLeftAction, rotateRightAction])
+                
+                finalRotation_Action = lockedRotation_Action
+            
+            // 1: ANGER - reversed
             case 1:
                 let possibleAxes: [SCNVector3] = [
                     SCNVector3(1, 0, 0),  //X
@@ -743,15 +702,6 @@ class ViewController: UIViewController, ObservableObject {
                     self.beganPanNode = nil
                 }
                 
-                // ANGER - locked
-            case 2:
-                let rotationAngle = CGFloat(direction) * .pi / 4
-                let rotateRightAction = SCNAction.rotate(by: rotationAngle, around: self.rotationAxis, duration: 0.1)
-                let rotateLeftAction = SCNAction.rotate(by: -rotationAngle*2, around: self.rotationAxis, duration: 0.1)
-                let lockedRotation_Action = SCNAction.sequence([rotateRightAction, rotateLeftAction, rotateRightAction])
-                
-                finalRotation_Action = lockedRotation_Action
-                
             default:
                 finalRotation_Action = rotation_Action
             }
@@ -759,13 +709,12 @@ class ViewController: UIViewController, ObservableObject {
             // Only phase 1 has a diferent rotation behavior
             if currentPhaseIndex != 1 {
                 container.runAction(finalRotation_Action) {
-                    for node: SCNNode in nodesToRotate {
+                    for node: SCNNode in nodesAdded {
                         let transform = node.parent!.convertTransform(node.transform, to: self.rubiksCube)
                         node.removeFromParentNode()
                         node.transform = transform
                         self.rubiksCube.addChildNode(node)
                     }
-                    
                     DispatchQueue.main.async {
                         self.numOfMovements += 1
                         self.HandleReactionsForEachMovementInPhase()
@@ -827,12 +776,10 @@ class ViewController: UIViewController, ObservableObject {
     }
     
     func moveText(text1: SCNNode, text2: SCNNode, by: SCNVector3, duration: TimeInterval) {
-        print("moveu")
         let moveAction = SCNAction.move(by: by, duration: duration)
         moveAction.timingMode = .easeInEaseOut
         text1.runAction(moveAction); text2.runAction(moveAction)
     }
-
 
     func rotate(axis: SCNVector3, negative: Bool, completion: @escaping ([SCNNode]) -> Void) {
         let container = SCNNode()
@@ -842,7 +789,7 @@ class ViewController: UIViewController, ObservableObject {
             container.addChildNode(node)
         }
         
-        let rotationAction = SCNAction.rotate(by: .pi/2, around: axis, duration: 0.1)
+        let rotationAction = SCNAction.rotate(by: .pi/2, around: axis, duration: 0.2)
         rotationAction.timingMode = .easeInEaseOut
         
         // REMOVING NODES FROM CONTAINER AFTER ROTATION
@@ -862,6 +809,7 @@ class ViewController: UIViewController, ObservableObject {
         }
     }
     
+    // SHUFFLE CUBE X TIMES
     func shuffleCube(times: Int, completion: @escaping () -> Void) {
         let numberOfMoves = times
             
@@ -899,33 +847,19 @@ class ViewController: UIViewController, ObservableObject {
         performNextIteration(iteration: 0)
     }
 
-
-
+    // CUBE SELECTED SIDE (NOT ROTATED SIDE)
     private func selectedCubeSide(hitResult: SCNHitTestResult, edgeDistanceFromOrigin:Float) -> CubeSide {
-        
         // X
-        if beganPanHitResult.worldCoordinates.x.isVeryClose(to: edgeDistanceFromOrigin, withTolerance: tolerance25) {
-            return .right
-        }
-        else if beganPanHitResult.worldCoordinates.x.isVeryClose(to: -edgeDistanceFromOrigin, withTolerance: tolerance25) {
-            return .left
-        }
+        if beganPanHitResult.worldCoordinates.x.isVeryClose(to: edgeDistanceFromOrigin, withTolerance: tolerance25) { return .right }
+        else if beganPanHitResult.worldCoordinates.x.isVeryClose(to: -edgeDistanceFromOrigin, withTolerance: tolerance25) { return .left }
         
         // Y
-        else if beganPanHitResult.worldCoordinates.y.isVeryClose(to: edgeDistanceFromOrigin, withTolerance: tolerance25) {
-            return .up
-        }
-        else if beganPanHitResult.worldCoordinates.y.isVeryClose(to: -edgeDistanceFromOrigin, withTolerance: tolerance25) {
-            return .down
-        }
+        else if beganPanHitResult.worldCoordinates.y.isVeryClose(to: edgeDistanceFromOrigin, withTolerance: tolerance25) { return .up }
+        else if beganPanHitResult.worldCoordinates.y.isVeryClose(to: -edgeDistanceFromOrigin, withTolerance: tolerance25) { return .down }
         
         // Z
-        else if beganPanHitResult.worldCoordinates.z.isVeryClose(to: edgeDistanceFromOrigin, withTolerance: tolerance25) {
-            return .front
-        }
-        else if beganPanHitResult.worldCoordinates.z.isVeryClose(to: -edgeDistanceFromOrigin, withTolerance: tolerance25) {
-            return .back
-        }
+        else if beganPanHitResult.worldCoordinates.z.isVeryClose(to: edgeDistanceFromOrigin, withTolerance: tolerance25) { return .front }
+        else if beganPanHitResult.worldCoordinates.z.isVeryClose(to: -edgeDistanceFromOrigin, withTolerance: tolerance25) { return .back }
         return .none
     }
 }

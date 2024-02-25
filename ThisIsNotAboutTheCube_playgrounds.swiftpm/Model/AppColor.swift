@@ -2,10 +2,10 @@ import SwiftUI
 
 enum AppColor: String, CaseIterable {
     case bg_white
-    case darkerGray
-    case middleGray
-    case thirdGray
-    case lighterGray
+    case color_darkerGray
+    case color_middleGray
+    case color_thirdGray
+    case color_lighterGray
     
     var color: Color {
         return Color(UIColor(named: rawValue) ?? .clear)

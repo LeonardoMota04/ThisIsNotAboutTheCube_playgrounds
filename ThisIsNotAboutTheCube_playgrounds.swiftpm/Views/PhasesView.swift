@@ -1,21 +1,19 @@
 import SwiftUI
 import SceneKit
 
+// PHASES UI VIEW
 struct PhasesView: View {
     @EnvironmentObject var vc: ViewController
     
+    // TEXTS
     @State private var titleLabel: String = ""
-    @State private var subtitleLabel: String = ""
     @State private var actionLabel: String = ""
-    @State private var imageScale: CGFloat = 1.0
-    @State private var headerOpacity: Double = 0.0
-    @State private var actionLabelOpacity: Double = 0.0
-
-    @State private var titleOffsetX: CGFloat = -UIScreen.main.bounds.width
-    @State private var subtitleOffsetX: CGFloat = UIScreen.main.bounds.width
-    @State private var textColor: Color = AppColor.bg_white.color
-    
-    
+    @State private var actionLabelOpacity: Double = 1
+    @State private var titleOffsetY: CGFloat = -UIScreen.main.bounds.height
+    @State private var rotationBackgroundTitle: Double = 5
+    @State private var actionLabelOffsetY: CGFloat = UIScreen.main.bounds.height
+    @State private var titleTextColor: Color = AppColor.color_lighterGray.color
+    @State private var textColor: Color = AppColor.color_lighterGray.color
     
     var body: some View {
         let cfURL = Bundle.main.url(forResource: "fffforward", withExtension: "ttf")
@@ -23,100 +21,93 @@ struct PhasesView: View {
         
         VStack (spacing: 20){
             /// Title
-            Text(titleLabel)
-                .font(Font.custom("fffforward", size: 50))
-                .foregroundStyle(textColor)
-                .opacity(headerOpacity)
-                //.opacity(headerOpacity)
-                //.offset(x: titleOffsetX) // Adicionando deslocamento horizontal
-
-            /// subtitle
-            Text(subtitleLabel)
-                .font(.system(size: 25))
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: UIScreen.main.bounds.width / 1.2)
-                .foregroundStyle(AppColor.bg_white.color)
-                .opacity(headerOpacity)
-                //.offset(x: subtitleOffsetX) // Adicionando deslocamento horizontal
-
+            ZStack {
+                Rectangle()
+                    .frame(width: 350, height: 100)
+                    .rotationEffect(.degrees(rotationBackgroundTitle))
+                    .foregroundStyle(AppColor.color_darkerGray.color)
+                    .offset(y: vc.currentPhaseIndex != 5 ? titleOffsetY 
+                            : withAnimation(.easeInOut(duration: 2)) {-UIScreen.main.bounds.height} )
+                Text(titleLabel)
+                    .font(Font.custom("fffforward", size: 60))
+                    .foregroundStyle(titleTextColor)
+                    .offset(y: titleOffsetY)
+                    
+            }
+            
             Spacer()
 
             /// Action Label
             VStack(spacing: 10) {
-                Text(actionLabel)
+                Text("\"\(Text(actionLabel))\"")
                     .font(Font.custom("fffforward", size: 25))
+                    .multilineTextAlignment(.center)
+                    .frame(width: 1000)
                     .foregroundStyle(textColor)
-                    .opacity(actionLabelOpacity)
-                    .padding(.bottom, 100)
+                
                 Text("\(vc.numOfMovements) / \(vc.currentPhase?.movementsRequired ?? 0)")
-                    .font(Font.custom("fffforward", size: 20))
-                    .foregroundStyle(textColor)
-                    .opacity(actionLabelOpacity)
+                .font(Font.custom("fffforward", size: 50))
+                .foregroundStyle(AppColor.color_middleGray.color)
+                .rotation3DEffect(
+                    .degrees(45),
+                    axis: (x: 1, y: 0, z: 0),
+                    anchor: .center
+                )
+                
             }
-            
+            .opacity(actionLabelOpacity)
+            .offset(y: actionLabelOffsetY)
+            .padding(.bottom, 20)
         }
         .padding()
         
-        
-       
-        
         // MARK: - ON APPEAR
         .onAppear {
-            print("APARECEU A PHASES VIEW")
-            titleLabel = vc.cubePhases.isEmpty ? "empty" : vc.currentPhase!.title
-            subtitleLabel = vc.cubePhases.isEmpty ? "empty" : vc.currentPhase!.subtitle
-            actionLabel = vc.cubePhases.isEmpty ? "empty" : vc.currentPhase!.actionLabel
+            // GETTERS
+            titleLabel = vc.currentPhase!.title
+            actionLabel = vc.currentPhase!.actionLabel
+            
+            withAnimation(.easeInOut(duration: 3).delay(2)) {
+                titleOffsetY = 0
+            }
+            withAnimation(.easeInOut(duration: 3).delay(3)) {
+                actionLabelOffsetY = 0
+            }
         }
         
         // MARK: - ON CHANGE OF
         .onChange(of: vc.currentPhaseIndex) { newPhase in
+            // PHASE 5
             if newPhase == 5 {
                 withAnimation(.easeInOut(duration: 5)) {
+                    // Change text color
+                    titleTextColor = .black
                     textColor = .black
+                    
+                    titleLabel = vc.currentPhase!.title
+                    actionLabel = vc.currentPhase!.actionLabel
                 }
-            } else {
-                withAnimation(.easeInOut(duration: 2)) {
-                    textColor = AppColor.bg_white.color
-                }
-            }
-            
-            
-            //withAnimation(.easeInOut(duration: 2)) {
-            titleLabel = vc.cubePhases.isEmpty ? "empty" : vc.currentPhase!.title
-            actionLabel = vc.cubePhases.isEmpty ? "empty" : vc.currentPhase!.actionLabel
-            subtitleLabel = vc.cubePhases.isEmpty ? "empty" : vc.currentPhase!.subtitle
                 
-            //}
-            
-            // Animação de entrada da esquerda para o título
-            withAnimation(.interactiveSpring(duration: 1.0)) {
-                titleOffsetX = 0
-            }
-
-            // Aguarde um pouco antes de começar a animação do subtítulo
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                // Animação de entrada da esquerda para o subtítulo
-                withAnimation(.linear(duration: 1.0)) {
-                    subtitleOffsetX = 0
+            // 1, 2, 3, 4
+            } else {
+                // Text go up, change, then comes back down
+                withAnimation(.easeInOut(duration: 2)) {
+                    // old text up
+                    titleOffsetY = -UIScreen.main.bounds.height
+                    actionLabelOffsetY = UIScreen.main.bounds.height
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                        titleLabel = vc.currentPhase!.title
+                        actionLabel = vc.currentPhase!.actionLabel
+                        rotationBackgroundTitle = -(rotationBackgroundTitle)
+                    
+                        // new text down
+                        withAnimation(.easeInOut(duration: 2)) {
+                            titleOffsetY = 0
+                            actionLabelOffsetY = 0
+                        }
+                    }
                 }
             }
-            
-            withAnimation(.easeIn(duration: 2.0)) {
-                headerOpacity = 1
-            }
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-                withAnimation(.easeIn(duration: 2.0)) {
-                    self.actionLabelOpacity = 1
-                }
-            }
-
         }
     }
 }
-
-#Preview {
-    ContentView()
-}
-
-
