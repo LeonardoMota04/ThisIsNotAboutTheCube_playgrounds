@@ -60,7 +60,7 @@ struct ContentView: View {
                         .position(x: UIScreen.main.bounds.width - 250, y: UIScreen.main.bounds.height - 100)
                 }
             }
-            .sheet(isPresented: $openModalCredits) { CreditsView() }
+            .sheet(isPresented: $openModalCredits) {CreditsView(isPresented: $openModalCredits)}
         
         // MARK: - ON APPEAR
         /// Timer to "press to start" label

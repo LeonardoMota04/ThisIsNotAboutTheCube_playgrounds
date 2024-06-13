@@ -3,6 +3,7 @@ import SceneKit
 
 // CREDITS VIEW
 struct CreditsView: View {
+    @Binding var isPresented: Bool
     var body: some View {
         if let cfURL = Bundle.main.url(forResource: "fffforward", withExtension: "ttf") {
             let _ = CTFontManagerRegisterFontsForURL(cfURL as CFURL, CTFontManagerScope.process, nil)
@@ -10,6 +11,22 @@ struct CreditsView: View {
         ZStack {
             AppColor.color_middleGray.color.ignoresSafeArea()
             
+            Button {
+                isPresented = false
+            } label: {
+                ZStack {
+                    Rectangle()
+                        .frame(width: 50, height: 50)
+                        .foregroundStyle(AppColor.color_darkerGray.color)
+                    Text("X")
+                        .font(.system (size: 30))
+                        .bold()
+                        .foregroundStyle(AppColor.bg_white.color)
+                }
+            }
+            .position(x: 50, y: 50)
+            
+
             VStack(spacing: 20){
                 // TITLE
                 ZStack {
